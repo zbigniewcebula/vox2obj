@@ -475,7 +475,22 @@ class VOXModel {
 						}
 						if(numVoxels > 0) {
 							voxels	= new vec4[numVoxels];
-							hFile.read(reinterpret_cast<char*>(voxels), sizeof(vec4) * numVoxels);
+							struct derp {
+								unsigned char x;
+								unsigned char y;
+								unsigned char z;
+								unsigned char w;
+							};
+							derp* temp = new derp[numVoxels];
+							//hFile.read(reinterpret_cast<char*>(voxels), sizeof(vec4) * numVoxels);
+							hFile.read(reinterpret_cast<char*>(temp), 4 * numVoxels);
+							for(int i = 0; i < numVoxels; ++i) {
+								voxels[i].Set(
+									temp[i].x, temp[i].y,
+									temp[i].z, temp[i].w
+								);
+							}
+							delete[] temp;
 						}
 						break;
 					}
