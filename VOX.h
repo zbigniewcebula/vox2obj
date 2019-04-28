@@ -203,14 +203,14 @@ class VOXModel {
 			
 			if(not success)
 				FreeMemory();
-			
+
 			return success;		
 		}
 
 		constexpr bool IsEmpty() const {
 			return sizeX == 0 and sizeY == 0 and sizeZ == 0;
 		}
-
+		
 		void SetSize(int x, int y, int z) {
 			sizeX		= sizeY = sizeZ = 0;
 			numVoxels	= 0;

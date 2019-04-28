@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <iterator>
+#include <map>
 
 #include <cctype>
 #include <cstdio>
@@ -37,6 +38,8 @@ struct Cube {
 	bool neigh[6] = {
 		false, false, false, false, false, false
 	};
+
+	int clr = -1;
 };
 
 int main(int argc, char** argv) {
@@ -46,7 +49,8 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	VOXModel vox(argv[1]);
+	VOXModel vox;
+	vox.Load(argv[1]);
 	int vID = 0;
 	int tID = 0;
 
@@ -63,127 +67,130 @@ int main(int argc, char** argv) {
 		{-1, 0, 0}
 	};
 
-	vox.ForEachVoxel([&](int x, int y, int z, int ID) {
-		Cube*	cube = nullptr;
-		if(ID != 0) {
-			cube = new Cube();
-			cube->vox.Set(x, y, z, ID);
+	vector<int>	color;
 
-			for(int i = 0; i < 6; ++i) {
-				cube->neigh[i] = vox.VoxelColorID(
-					x + dirs[i].x, y + dirs[i].y, z + dirs[i].z
-				) != 0;
-			}
+	//vox.ForEachVoxel([&](int x, int y, int z, int ID) {
+	for(int z = 0; z < vox.SizeZ(); ++z)
+		for(int y = 0; y < vox.SizeY(); ++y)
+			for(int x = 0; x < vox.SizeX(); ++x) {
+				int ID = vox.VoxelColorID(x, y, z);
+				if(ID != 0) {
+					Cube*	cube = new Cube();
+					cube->vox.Set(x, y, z, ID);
 
-			int _1 = x + 1;
-			int _2 = y + 1;
-			//Dół
-			auto& A = cube->v[0].Set(x, y, 	z);
-			auto& B = cube->v[1].Set(_1, y, z);
-			auto& C = cube->v[2].Set(_1, _2, z);
-			auto& D = cube->v[3].Set(x, _2,	z);
-			//Góra
-			++z;
-			auto& E = cube->v[4].Set(x,	y, 	z);
-			auto& F = cube->v[5].Set(_1, y, z);
-			auto& G = cube->v[6].Set(_1, _2, z);
-			auto& H = cube->v[7].Set(x, _2, z);
+					auto it = find(color.begin(), color.end(), ID);
+					if(it == color.end()) {
+						color.push_back(ID);
+						cube->clr = color.size() - 1;
+					} else {
+						cube->clr = it - color.begin();
+					}
+					cube->clr += 1;
 
-			for(int i = 0; i < 8; ++i)
-				cube->v[i].w = -1;
+					for(int i = 0; i < 6; ++i) {
+						cube->neigh[i] = vox.VoxelColorID(
+							x + dirs[i].x, y + dirs[i].y, z + dirs[i].z
+						) != 0;
+					}
 
-			//if(!cube->neigh[0]) {	//up
-				H.w = 1;
-				G.w = 1;
-				E.w = 1;
-				F.w = 1;
-			//}
-			//if(!cube->neigh[1]) {	//back
-				H.w = 1;
-				G.w = 1;
-				C.w = 1;
-				D.w = 1;
-			//}
-			//if(!cube->neigh[2]) {	//right
-				B.w = 1;
-				G.w = 1;
-				C.w = 1;
-				F.w = 1;
-			//}
-			//if(!cube->neigh[3]) {	//front
-				B.w = 1;
-				A.w = 1;
-				E.w = 1;
-				F.w = 1;
-			//}
-			//if(!cube->neigh[4]) {	//bottom
-				B.w = 1;
-				A.w = 1;
-				C.w = 1;
-				D.w = 1;
-			//}
-			//if(!cube->neigh[5]) {	//left
-				D.w = 1;
-				A.w = 1;
-				H.w = 1;
-				E.w = 1;
-			//}
+					int _1 = x + 1;
+					int _2 = y + 1;
+					//Dół
+					auto& A = cube->v[0].Set(-x, z, y);
+					auto& B = cube->v[1].Set(-_1, z, y);
+					auto& C = cube->v[2].Set(-_1, z, _2);
+					auto& D = cube->v[3].Set(-x, z, _2);
+					//Góra
+					++z;
+					auto& E = cube->v[4].Set(-x,	z, y);
+					auto& F = cube->v[5].Set(-_1, 	z, y);
+					auto& G = cube->v[6].Set(-_1, z, _2);
+					auto& H = cube->v[7].Set(-x, z, _2);
+					--z;
 
-			for(int i = 0; i < 8; ++i) {
-				if(cube->v[i].w == 1)
-					cube->v[i].w += vID++;
-			}
-			for(int i = 0; i < 12; ++i) {
-				cube->t[i].w = -1;
-			}
+					for(int i = 0; i < 8; ++i)
+						cube->v[i].a = -1;
 
-			if(!cube->neigh[0]) {	//up
-				cube->t[0].Set(H.w, E.w, F.w, tID++);
-				cube->t[1].Set(H.w, F.w, G.w, tID++);
-			}
-			if(!cube->neigh[1]) {	//back
-				cube->t[2].Set(C.w, H.w, G.w, tID++);
-				cube->t[3].Set(C.w, D.w, H.w, tID++);
-			}
-			if(!cube->neigh[2]) {	//right
-				cube->t[4].Set(B.w, G.w, F.w, tID++);
-				cube->t[5].Set(B.w, C.w, G.w, tID++);
-			}
-			if(!cube->neigh[3]) {	//front
-				cube->t[6].Set(A.w, B.w, E.w, tID++);
-				cube->t[7].Set(B.w, F.w, E.w, tID++);
-			}
-			if(!cube->neigh[4]) {	//bottom
-				cube->t[8].Set(D.w, C.w, B.w, tID++);
-				cube->t[9].Set(D.w, B.w, A.w, tID++);
-			}
-			if(!cube->neigh[5]) {	//left
-				cube->t[10].Set(D.w, A.w, E.w, tID++);
-				cube->t[11].Set(D.w, E.w, H.w, tID++);
-			}
+					if(!cube->neigh[0]) {	//up
+						H.a = 1;
+						G.a = 1;
+						E.a = 1;
+						F.a = 1;
+					}
+					if(!cube->neigh[1]) {	//back
+						H.a = 1;
+						G.a = 1;
+						C.a = 1;
+						D.a = 1;
+					}
+					if(!cube->neigh[2]) {	//right
+						B.a = 1;
+						G.a = 1;
+						C.a = 1;
+						F.a = 1;
+					}
+					if(!cube->neigh[4]) {	//front
+						B.a = 1;
+						A.a = 1;
+						E.a = 1;
+						F.a = 1;
+					}
+					if(!cube->neigh[3]) {	//bottom
+						B.a = 1;
+						A.a = 1;
+						C.a = 1;
+						D.a = 1;
+					}
+					if(!cube->neigh[5]) {	//left
+						D.a = 1;
+						A.a = 1;
+						H.a = 1;
+						E.a = 1;
+					}
 
-			map.push_back(cube);
-			cube = nullptr;
-		}
-	}, [&](int y, int z) {
-	//	cout << endl;
-	}, [&](int z) {
-	//	cout << endl;
-	});
+					for(int i = 0; i < 8; ++i) {
+						if(cube->v[i].a == 1)
+							cube->v[i].a += vID++;
+					}
+					for(int i = 0; i < 12; ++i) {
+						cube->t[i].a = -1;
+					}
+
+					if(!cube->neigh[0]) {	//up
+						cube->t[0].Set(H.a, E.a, F.a, tID++);
+						cube->t[1].Set(H.a, F.a, G.a, tID++);
+					}
+					if(!cube->neigh[1]) {	//back
+						cube->t[2].Set(C.a, H.a, G.a, tID++);
+						cube->t[3].Set(C.a, D.a, H.a, tID++);
+					}
+					if(!cube->neigh[2]) {	//right
+						cube->t[4].Set(B.a, G.a, F.a, tID++);
+						cube->t[5].Set(B.a, C.a, G.a, tID++);
+					}
+					if(!cube->neigh[3]) {	//bottom
+						cube->t[6].Set(D.a, C.a, B.a, tID++);
+						cube->t[7].Set(D.a, B.a, A.a, tID++);
+					}
+					if(!cube->neigh[4]) {	//front
+						cube->t[8].Set(A.a, B.a, E.a, tID++);
+						cube->t[9].Set(B.a, F.a, E.a, tID++);
+					}
+					if(!cube->neigh[5]) {	//left
+						cube->t[10].Set(D.a, A.a, E.a, tID++);
+						cube->t[11].Set(D.a, E.a, H.a, tID++);
+					}
+
+					map.push_back(cube);
+				}
+			}
+		//--
+	//--
 	
-	/*
-	vox.ForEachVoxel([&](int x, int y, int z, int ID) {
-		cout << int(ID) << " ";
-	}, [&](int y, int z) {
-		cout << endl;
-	}, [&](int z) {
-		cout << endl;
-	});
-	*/
-
-	string vn = "112233445566";
+	string vn = "221166554433";
 	
 	ofstream hFile("./output.obj", ios::trunc | ios::out);
+
 
 	hFile	<< "#" << map.size() << endl;
 
@@ -197,17 +204,27 @@ int main(int argc, char** argv) {
 			<< "vn 0 0 -1\n"
 			<< "vn 0 -1 0\n"
 			<< "vn -1 0 0\n"
-			<< "vt 0.5 0.5\n"
 	<< endl;
+
+	float halfPx = (1.0f / 256.0f) / 2.0f;
+	for(size_t i = 0; i < color.size(); ++i) {
+		hFile 	<< "vt "
+				<< (color[i] * (2.0f * halfPx) - halfPx)
+				<< " 0.5\n";
+	}
+	hFile << endl;
+
+	int offsetX = 0;//-vox.SizeX() / 2;
+	int offsetY = 0;//-vox.SizeY() / 2;
 
 	for(size_t i = 0; i < map.size(); ++i) {
 		for(int j = 0; j < 8; ++j) {
-			if(map[i]->v[j].w > -1) {
+			if(map[i]->v[j].a > -1) {
 				hFile	<< "v "
-						<< int(map[i]->v[j].x) << ' '
-						<< int(map[i]->v[j].y) << ' '
-						<< int(map[i]->v[j].z) <<
-						"\n#" << int(map[i]->v[j].w)
+						<< ((map[i]->v[j].x + offsetX)  / 32.0f)
+						<< ' ' << ((map[i]->v[j].y + offsetY)  / 32.0f)
+						<< ' ' << (map[i]->v[j].z / 32.0f)
+						//<< "\n#" << int(map[i]->v[j].w)
 				<< endl;
 			}
 		}
@@ -217,18 +234,18 @@ int main(int argc, char** argv) {
 	for(size_t i = 0; i < map.size(); ++i) {
 		if(map[i] != nullptr)
 			for(int j = 0; j < 12; ++j) {
-				if(map[i]->t[j].w > -1)
+				if(map[i]->t[j].a > -1)
 				hFile	<< "f "
 						<< int(map[i]->t[j].x) << '/'
-						<< "1/"
+						<< map[i]->clr << "/"
 						<< int(vn[j] - '0') << " "
 
 						<< int(map[i]->t[j].y) << '/'
-						<< "1/"
+						<< map[i]->clr << "/"
 						<< int(vn[j] - '0') << " "
 
 						<< int(map[i]->t[j].z) << '/'
-						<< "1/"
+						<< map[i]->clr << "/"
 						<< int(vn[j] - '0')
 				<< endl;
 			}
