@@ -212,14 +212,21 @@ class VOXModel {
 		}
 		
 		void SetSize(int x, int y, int z) {
-			sizeX		= sizeY = sizeZ = 0;
-			numVoxels	= 0;
+			sizeX		= x;
+			sizeY		= y;
+			sizeZ		= z;
+			numVoxels	= x * y * z;
 			version		= MV_VERSION;
 
 			if(voxels not_eq nullptr)
 				delete[]	voxels;
 
-			voxels	= new vec4[sizeX * sizeY * sizeZ];
+			voxels	= new vec4[numVoxels];
+			int 	i = 0;
+			for(z = 0; z < sizeZ; ++z)
+				for(y = 0; y < sizeY; ++y)
+					for(x = 0; x < sizeX; ++x)
+						voxels[i++].Set(x, y, z, 0);
 		}
 
 		int VoxelColorID(int x, int y, int z) const {
