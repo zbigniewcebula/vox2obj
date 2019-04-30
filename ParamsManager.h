@@ -33,7 +33,7 @@ class ParamsManager {
 				}
 
 				void print() {
-					cout	<< right << setw(7) << small << ", " << left << setw(14) << big
+					cout	<< right << setw(7) << small << (small.empty()? "": ", ") << left << setw(14) << big
 							<< setw(20) << valueDescription
 							<< '\t' << setw(40) << description << '\n';
 				}
@@ -57,6 +57,9 @@ class ParamsManager {
 			) {
 				params.emplace_back(small, big, description, valueDescription);
 			}
+		}
+		void addParamSeparator() {
+			params.emplace_back("", "", "", "");
 		}
 
 		vector<Param>::iterator exists(string flag) {
@@ -86,10 +89,10 @@ class ParamsManager {
 
 		void printHelp() {
 			cout	<< "Usage: vox2obj [OPTION [VALUE]]\n\n"
-					<< "Converts VOX file into OBJ format file (or multiple files)\n\n"
+					<< "Converts VOX file(s) into OBJ format file(s)\n\n"
 					<< "Available options:\n";
 			printList();
-			cout	<< "\n\n\nFor more visit: https://github.com/zbigniewcebula/vox2obj\n"
+			cout	<< "\nFor more visit: https://github.com/zbigniewcebula/vox2obj\n"
 					<< endl;
 		}
 
@@ -111,8 +114,6 @@ class ParamsManager {
 						cerr	<< "Parameter \"" << tempStr << "\" used multiple times! Aborting..." << endl;
 						return false;
 					}
-				} else if((*lastParam) == "-s") {
-					(*lastParam).value	= "1";
 				} else {
 					if(lastParam != badParameter()) {
 						(*lastParam).value	= tempStr;

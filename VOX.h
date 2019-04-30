@@ -243,18 +243,15 @@ class VOXModel {
 			if(x > -1 and x < sizeX
 			and y > -1 and y < sizeY
 			and z > -1 and z < sizeZ
+			and numVoxels > 0
 			) {
-				if(numVoxels > 0) {
-					for(int i = 0; i < numVoxels; ++i) {
-						vec4&	v = voxels[i];
-						if(v.x == x and v.y == y and v.z == z) {
-							v.w	= i;
-							return;
-						}
+				for(int i = 0; i < numVoxels; ++i) {
+					vec4&	v = voxels[i];
+					if(v.x == x and v.y == y and v.z == z) {
+						v.w	= idx;
+						return;
 					}
 				}
-				voxels[numVoxels].Set(x, y, z, idx);
-				++numVoxels;
 			}
 		}
 

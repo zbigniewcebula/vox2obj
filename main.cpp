@@ -31,12 +31,22 @@ int main(int argc, char** argv) {
 
 	ParamsManager	paramManager;
 	paramManager.addParam("-h", "--help", "Shows help", "");
-	paramManager.addParam("-i", "--in", "Sets input VOX file", "INTPUT_VOX");
-	paramManager.addParam("-o", "--out", "Sets output OBJ file (overrites existing file!)", "OUTPUT_OBJ");
+	paramManager.addParamSeparator();
+	paramManager.addParam("-i", "--in", "Sets input VOX file", "INPUT_VOX");
+	paramManager.addParam("-o", "--out", "Sets output OBJ file (overrites existing file! disabled -i and -o flag)", "OUTPUT_OBJ");
+	//TODO
+	paramManager.addParam("-id", "--in-dir", "Sets input directory for recursively find VOX files (use with -od flag)", "INPUT_VOX_DIR");
+	//TODO
+	paramManager.addParam(
+		"-od", "--out-dir", "Sets output directory for recursively found VOX files (use with -id flag)", "OUTPUT_VOX_DIR"
+	);
+	paramManager.addParamSeparator();
 	paramManager.addParam("-m", "--mtl", "Sets output MTL file (used in OBJs)", "INPUT_MTL");
 	paramManager.addParam("-cm", "--create-mtl", "Creates default MTL (overrites existing file!)", "OUTPUT_MTL");
 	paramManager.addParam("-t", "--texture", "Uses texture (use with -cm flag)", "INTPUT_TEXTURE");
 	paramManager.addParam("-s", "--split", "Takes separated parts of VOX model and splits them into separated OBJs", "");
+	paramManager.addParam("-sc", "--scale", "Takes separated parts of VOX model and splits them into separated OBJs", "");
+
 
 	if(paramManager.process(argc, argv) == false)
 		return 1;
@@ -86,19 +96,22 @@ int main(int argc, char** argv) {
 	}
 
 	string		mtlPath	= paramManager.getValueOf("-m");
-	if(paramManager.getValueOf("-s") == "1") {
+	if(paramManager.exists("-s") != paramManager.badParameter()) {
 		vector<VOXModel*> models = SplitVOX(vox);
 		int	partNum = 0;
-		
+
 		size_t	lastOBJ = outputPath.find_last_of(".obj");
 		if(lastOBJ != string::npos) {
-			outputPath.replace(lastOBJ, 4, "_");
+			outputPath.replace(lastOBJ - 3, 4, "_");
 		}
 
 		for(VOXModel* mdl : models) {
 			Model model;
 			model.LoadVOX(*mdl);
-			model.SaveOBJ(outputPath + tostring(partNum++) + ".obj", mtlPath == ""? "material.mtl": mtlPath);
+			model.SaveOBJ(
+				outputPath + tostring(partNum++) + ".obj",
+				mtlPath == ""? "material.mtl": mtlPath
+			);
 			delete mdl;
 		}
 		models.clear();
