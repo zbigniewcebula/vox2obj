@@ -7,9 +7,6 @@
 
 #include <cstring>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-
 using namespace std;
 
 bool fileExists(string path) {
@@ -19,21 +16,6 @@ bool fileExists(string path) {
 	}
 	fclose(handle);
 	return true;
-}
-
-bool dirExists(string path) {
-	struct stat info;
-	if(stat(path.c_str(), &info) != 0) {
-		return false;
-	} else if(info.st_mode & S_IFDIR) {
-		return true;
-	}
-	return false;
-}
-
-inline bool isDir(string path) {
-	//Lazy wrap for code's beauty sake...
-	return dirExists(path);
 }
 
 string tostring(int number) {

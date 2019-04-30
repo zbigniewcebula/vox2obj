@@ -9,7 +9,7 @@
 
 using namespace std;
 
-class ParamsManager {
+class ParamManager {
 	public:
 		class Param {
 			public:
@@ -49,7 +49,7 @@ class ParamsManager {
 		vector<Param>	params;
 
 	public:
-		ParamsManager() {}
+		ParamManager() {}
 
 		void addParam(string small, string big, string description, string valueDescription) {
 			if(find(params.begin(), params.end(), small) == params.end()

@@ -9,16 +9,14 @@
 #include <cctype>
 #include <cstring>
 
-#include <dirent.h>
-#include <errno.h>
-
 #include "VOX.h"
 #include "VOXSplit.h"
 #include "Model.h"
 
 #include "helpFunctions.h"
-#include "ParamsManager.h"
+#include "ParamManager.h"
 
+#include "DirUtils.h"
 
 using namespace std;
 
@@ -29,7 +27,7 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	ParamsManager	paramManager;
+	ParamManager	paramManager;
 	paramManager.addParam("-h", "--help", "Shows help", "");
 	paramManager.addParamSeparator();
 	paramManager.addParam("-i", "--in", "Sets input VOX file", "INPUT_VOX");
@@ -38,7 +36,7 @@ int main(int argc, char** argv) {
 	paramManager.addParam("-id", "--in-dir", "Sets input directory for recursively find VOX files (use with -od flag)", "INPUT_VOX_DIR");
 	//TODO
 	paramManager.addParam(
-		"-od", "--out-dir", "Sets output directory for recursively found VOX files (use with -id flag)", "OUTPUT_VOX_DIR"
+		"-od", "--out-dir", "Sets output directory for recursively found VOX files (use with -id flag), copying -id dirs structure", "OUTPUT_VOX_DIR"
 	);
 	paramManager.addParamSeparator();
 	paramManager.addParam("-m", "--mtl", "Sets output MTL file (used in OBJs)", "INPUT_MTL");
@@ -52,6 +50,7 @@ int main(int argc, char** argv) {
 		return 1;
 	//--
 
+	//MTL Creation
 	string mtlCreatePath = paramManager.getValueOf("-cm");
 	if(mtlCreatePath != "") {
 		if(fileExists(mtlCreatePath)) {
@@ -74,51 +73,77 @@ int main(int argc, char** argv) {
 		hMTL.close();
 	}
 
-	VOXModel	vox;
-	string		inputPath	= paramManager.getValueOf("-i");
-	string		outputPath	= paramManager.getValueOf("-o");
-	if(inputPath != "") {
-		if(not vox.Load(inputPath)) {
-			cerr	<< "Cannot load VOX file: '" << inputPath << "'... Aborting!" << endl;
+	//Convertion
+	if(paramManager.exists("-id") != paramManager.badParameter()
+	and paramManager.exists("-od") != paramManager.badParameter()
+	) {
+		if(isDir(paramManager.getValueOf("-id"))) {
+			vector<string> dirs;
+			vector<string> voxFiles;
+
+			//Find directories structure
+			dirs.push_back(paramManager.getValueOf("-id"));
+			getDirectoriesList(dirs);
+			//Copy structure
+			createDirectoryTree(paramManager.getValueOf("-od"), dirs);
+			//Find all VOx files
+			findVOXFiles(dirs, voxFiles);
+
+			/////////////////////
+			//Out OBJs
+		}
+	} else if(paramManager.exists("-id") != paramManager.badParameter()
+	or paramManager.exists("-od") != paramManager.badParameter()
+	) {
+		cerr << "Flags -id and -od are usefull only when used together! Aborting...";
+		return 1;
+	} else {
+		VOXModel	vox;
+		string		inputPath	= paramManager.getValueOf("-i");
+		string		outputPath	= paramManager.getValueOf("-o");
+		if(inputPath != "") {
+			if(not vox.Load(inputPath)) {
+				cerr	<< "Cannot load VOX file: '" << inputPath << "'... Aborting!" << endl;
+				return 1;
+			}
+		} else {
+			cerr	<< "No input file given! Aborting!" << endl;
 			return 1;
 		}
-	} else {
-		cerr	<< "No input file given! Aborting!" << endl;
-		return 1;
-	}
-	if(outputPath != "") {
-		if(fileExists(outputPath)) {
-			cerr	<< "Output file exists! Overriting!" << endl;
-		}
-	} else {
-		cerr	<< "No output file path given! Using '" << inputPath << ".obj'!" << endl;
-		outputPath = inputPath + ".obj";
-	}
-
-	string		mtlPath	= paramManager.getValueOf("-m");
-	if(paramManager.exists("-s") != paramManager.badParameter()) {
-		vector<VOXModel*> models = SplitVOX(vox);
-		int	partNum = 0;
-
-		size_t	lastOBJ = outputPath.find_last_of(".obj");
-		if(lastOBJ != string::npos) {
-			outputPath.replace(lastOBJ - 3, 4, "_");
+		if(outputPath != "") {
+			if(fileExists(outputPath)) {
+				cerr	<< "Output file exists! Overriting!" << endl;
+			}
+		} else {
+			cerr	<< "No output file path given! Using '" << inputPath << ".obj'!" << endl;
+			outputPath = inputPath + ".obj";
 		}
 
-		for(VOXModel* mdl : models) {
+		string		mtlPath	= paramManager.getValueOf("-m");
+		if(paramManager.exists("-s") != paramManager.badParameter()) {
+			vector<VOXModel*> models = SplitVOX(vox);
+			int	partNum = 0;
+
+			size_t	lastOBJ = outputPath.find_last_of(".obj");
+			if(lastOBJ != string::npos) {
+				outputPath.replace(lastOBJ - 3, 4, "_");
+			}
+
+			for(VOXModel* mdl : models) {
+				Model model;
+				model.LoadVOX(*mdl);
+				model.SaveOBJ(
+					outputPath + tostring(partNum++) + ".obj",
+					mtlPath == ""? "material.mtl": mtlPath
+				);
+				delete mdl;
+			}
+			models.clear();
+		} else {
 			Model model;
-			model.LoadVOX(*mdl);
-			model.SaveOBJ(
-				outputPath + tostring(partNum++) + ".obj",
-				mtlPath == ""? "material.mtl": mtlPath
-			);
-			delete mdl;
+			model.LoadVOX(vox);
+			model.SaveOBJ(outputPath, mtlPath == ""? "material.mtl": mtlPath);
 		}
-		models.clear();
-	} else {
-		Model model;
-		model.LoadVOX(vox);
-		model.SaveOBJ(outputPath, mtlPath == ""? "material.mtl": mtlPath);
 	}
 
 	return 0;

@@ -83,5 +83,4 @@ vector<VOXModel*> SplitVOX(VOXModel& vox) {
 	return list;
 }
 
-
 #endif
