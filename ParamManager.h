@@ -49,7 +49,9 @@ class ParamManager {
 		vector<Param>	params;
 
 	public:
-		ParamManager() {}
+		ParamManager() {
+			addParam("-h", "--help", "Shows help", "");
+		}
 
 		void addParam(string small, string big, string description, string valueDescription) {
 			if(find(params.begin(), params.end(), small) == params.end()
@@ -62,15 +64,21 @@ class ParamManager {
 			params.emplace_back("", "", "", "");
 		}
 
-		vector<Param>::iterator exists(string flag) {
+		bool exists(string flag) {
 			return find_if(params.begin(), params.end(), [&](Param& p) -> bool {
 				return p == flag;
-			});
+			}) != params.end();
+		}
+
+		bool hasValue(string flag) {
+			return getValueOf(flag) != "";
 		}
 
 		string getValueOf(string flag) {
-			auto	it = exists(flag);
-			if(it != badParameter()) {
+			auto	it = find_if(params.begin(), params.end(), [&](Param& p) -> bool {
+				return p == flag;
+			});
+			if(it != params.end()) {
 				return (*it).value;
 			}
 			return "";
@@ -81,10 +89,6 @@ class ParamManager {
 				p.print();
 			}
 			cout	<< flush;
-		}
-
-		inline vector<Param>::iterator badParameter() {
-			return params.end();
 		}
 
 		void printHelp() {
@@ -99,28 +103,32 @@ class ParamManager {
 		bool process(int argc, char** argv) {
 			string		tempStr;
 			bool		paramOverload	= false;
-			auto		lastParam		= badParameter();
+			auto		lastParam		= params.end();
 			for(int i = 1; i < argc; ++i) {
 				tempStr	= argv[i];
 				if(startsWith(tempStr, "-")) {
-					lastParam	= exists(tempStr);
-					if(lastParam == badParameter()) {
+					lastParam	= find_if(params.begin(), params.end(), [&](Param& p) -> bool {
+						return p == tempStr;
+					});
+					if(lastParam == params.end()) {
 						cerr	<< "Unknown parameter \"" << tempStr << "\"! Aborting..." << endl;
 						return false;
 					} else if((*lastParam) == "-h") {
 						printHelp();
 						return false;
+					} else if((*lastParam) == "-s") {
+						(*lastParam).value	= "1";
 					} else if((*lastParam).value != "") {
 						cerr	<< "Parameter \"" << tempStr << "\" used multiple times! Aborting..." << endl;
 						return false;
 					}
 				} else {
-					if(lastParam != badParameter()) {
+					if(lastParam != params.end()) {
 						(*lastParam).value	= tempStr;
 					} else {
 						paramOverload	= true;
 					}
-					lastParam	= badParameter();
+					lastParam	= params.end();
 				}
 			}
 			if(paramOverload) {

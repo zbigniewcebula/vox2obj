@@ -1,10 +1,11 @@
 # vox2obj
 CLI tool for conversion MagicaVoxel's VOX files into OBJ + MTL
 
+Requires:
+	g++ 5.3.0
+
 To do:
  - Optimization and cleanup
- - Remove memleaks
- - Add conversion for whole directories
  - Add parameters like scale
  - [OPTIONAL] Add rotation
  - Add offset to set in middle of VOX size space

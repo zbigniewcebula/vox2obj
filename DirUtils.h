@@ -13,6 +13,7 @@
 #ifdef __unix__
 	#define createDir(PTH)	mkdir(PTH, 0755)
 #else
+	#include "windows.h"
 	#define createDir(PTH)	CreateDirectory(PTH, NULL)
 #endif
 
@@ -62,25 +63,6 @@ void createDirectoryTree(string where, vector<string>& dirsList) {
 	}
 	for(string path : dirsList) {
 		createDir((where + "/" + path).c_str());
-	}
-}
-
-void findVOXFiles(vector<string>& dirs, vector<string>& foundFiles) {
-	for(string path : dirs) {
-		if(isDir(path)) {
-			DIR*	dir	= opendir(path.c_str());
-			dirent*	dp	= readdir(dir);
-			do {
-				string name	= dp->d_name;
-				if(name != "." and name != "..")
-					if(endsWith(tolower(name), ".vox"))
-						foundFiles.push_back(path + "/" + name);
-					//--
-				//--
-				dp	= readdir(dir);
-			} while(dp not_eq NULL);
-			closedir(dir);
-		}
 	}
 }
 

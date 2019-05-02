@@ -194,8 +194,8 @@ class Model {
 			ofstream hFile(outPath, ios::trunc | ios::out);
 
 			hFile
-				<< "#" << voxel.size()
-				<< "g " << (name == ""? "Model": name) << "\n"
+				<< "#" << voxel.size() << '\n'
+				<< "g " << (name == ""? "Model": name) << '\n'
 				<< "mtllib " << mtlFile << "\n"
 				<< "usemtl palette\n"
 				<< "\n"
