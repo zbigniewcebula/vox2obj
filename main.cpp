@@ -20,7 +20,7 @@
 
 using namespace std;
 
-bool singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split);
+int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split);
 
 int main(int argc, char** argv) {
 	//Checking args
@@ -46,6 +46,7 @@ int main(int argc, char** argv) {
 	paramManager.addParam("-s", "--split", "Takes separated parts of VOX model and splits them into separated OBJs", "");
 	//TODO
 	paramManager.addParam("-sc", "--scale", "Takes separated parts of VOX model and splits them into separated OBJs", "");
+	paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions", "OUTPUT_LOG");
 
 
 	if(paramManager.process(argc, argv) == false)
@@ -94,6 +95,7 @@ int main(int argc, char** argv) {
 
 			string	mtlFile = paramManager.getValueOf("-m");
 			bool	doSplit	= paramManager.hasValue("-s");
+			int		fileIdx	= 1;
 			for(string path : dirs) {
 				if(isDir(path)) {
 					DIR*	dir	= opendir(path.c_str());
@@ -105,14 +107,18 @@ int main(int argc, char** argv) {
 								string out		= outDir + "/" + path + "/" + name;
 								out.replace(out.find_last_of(".vox") - 3, 4, ".obj");
 
-								cout	<< "File:	" << path
-										<< "\nOut:	" << out
-								<< endl;
-								cout << "Converted: \n\t" << boolalpha << singleVOX2OBJ(
+								cout	<< "[" << (fileIdx++) << "] "
+										<< (path + "/" + name)
+										<< " => ";
+								int result = singleVOX2OBJ(
 									path + "/" + name, out,
 									mtlFile, doSplit
-								) << endl;
-								cout << "===================" << flush << endl;
+								);
+								if(result > 0) {
+									cout << "Done! (" << result << " parts)" << endl;
+								} else {
+									cout << "Fail!!!!!!!!!!" << endl;
+								}
 							}
 						}
 						dp	= readdir(dir);
@@ -126,11 +132,11 @@ int main(int argc, char** argv) {
 			cerr << "Flags -id and -od are usefull only when used together! Aborting...";
 			return 1;
 		} else {
-			if(not singleVOX2OBJ(
+			if(singleVOX2OBJ(
 				paramManager.getValueOf("-i"), paramManager.getValueOf("-o"),
 				paramManager.getValueOf("-m"),
 				paramManager.hasValue("-s")
-			)) {
+			) == 0) {
 				return 1;
 			}
 		}
@@ -139,16 +145,16 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-bool singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = false) {
+int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = false) {
 	VOXModel	vox;
 	Model 		model;
 
 	if(inPath.empty()) {
 		cerr	<< "No input file given! Aborting!" << endl;
-		return false;
+		return 0;
 	} else if(not vox.Load(inPath)) {
 		cerr	<< "Cannot load VOX file: '" << inPath << "'... Aborting!" << endl;
-		return false;
+		return 0;
 	}
 
 	if(outPath != "") {
@@ -165,26 +171,30 @@ bool singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = f
 
 	if(split) {
 		vector<VOXModel*> models = SplitVOX(vox);
-		int	partNum = 0;
+		
+		if(models.size() > 1) {
+			int	partNum = 0;
 
-		size_t	lastOBJ = outPath.find_last_of(".obj");
-		if(lastOBJ != string::npos) {
-			outPath.replace(lastOBJ - 3, 4, "_");
-		}
+			size_t	lastOBJ = outPath.find_last_of(".obj");
+			if(lastOBJ != string::npos) {
+				outPath.replace(lastOBJ - 3, 4, "_");
+			}
 
-		for(VOXModel* mdl : models) {
-			model.LoadVOX(*mdl);
-			model.SaveOBJ(
-				outPath + tostring(partNum++) + ".obj",
-				mtlPath
-			);
-			delete mdl;
-			model.Clear();
+			for(VOXModel* mdl : models) {
+				model.LoadVOX(*mdl);
+				model.SaveOBJ(
+					outPath + tostring(partNum++) + ".obj",
+					mtlPath
+				);
+				delete mdl;
+				model.Clear();
+			}
+			partNum	= models.size();
+			models.clear();
+			return partNum;
 		}
-		models.clear();
-	} else {
-		model.LoadVOX(vox);
-		model.SaveOBJ(outPath, mtlPath);
 	}
-	return true;
+	model.LoadVOX(vox);
+	model.SaveOBJ(outPath, mtlPath);
+	return 1;
 }

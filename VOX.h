@@ -461,6 +461,11 @@ class VOXModel {
 
 			//Read children chunks
 			while(hFile.tellg() < mainChunk.end) {
+				if(hFile.tellg() <= -1) {
+					cerr << "[VOX] Unhandled error!" << endl;
+					return false;
+				}
+
 				Chunk childrenChunk;
 				childrenChunk.ReadFromFile(hFile);
 				
@@ -532,6 +537,8 @@ class VOXModel {
 						break;
 					}
 				}
+				if(childrenChunk.end >= mainChunk.end)
+					break;
 				hFile.seekg(childrenChunk.end);
 			}
 			if(not customPalette)
