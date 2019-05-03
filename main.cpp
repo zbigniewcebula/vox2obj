@@ -20,7 +20,7 @@
 
 using namespace std;
 
-int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split);
+int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split, float scale);
 
 int main(int argc, char** argv) {
 	//Checking args
@@ -44,8 +44,10 @@ int main(int argc, char** argv) {
 	paramManager.addParam("-cm", "--create-mtl", "Creates default MTL (overrites existing file!)", "OUTPUT_MTL");
 	paramManager.addParam("-t", "--texture", "Uses texture (use with -cm flag)", "INTPUT_TEXTURE");
 	paramManager.addParam("-s", "--split", "Takes separated parts of VOX model and splits them into separated OBJs", "");
+	paramManager.addParam("-as", "--auto-split", "Uses -s flag on every file with given sufinx in VOX file name (overrites -s flag)", "SUFIX");
+	paramManager.addParam("-sc", "--scale", "Changes scale of output OBJ, default: 0.03125", "SCALE");
 	//TODO
-	paramManager.addParam("-sc", "--scale", "Takes separated parts of VOX model and splits them into separated OBJs", "");
+	paramManager.addParam("-ms", "--mark-sides", "Adds side indicator L or R to OBJ file name after spliting (use with -s or -as flags	)", "");
 	paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions", "OUTPUT_LOG");
 
 
@@ -77,8 +79,8 @@ int main(int argc, char** argv) {
 	}
 
 	//Convertion
-	bool singularFile = (paramManager.hasValue("-id") and paramManager.hasValue("-od"));
-	if(singularFile) {
+	bool multipleFiles = (paramManager.hasValue("-id") and paramManager.hasValue("-od"));
+	if(multipleFiles) {
 		if(isDir(paramManager.getValueOf("-id"))) {
 			vector<string> dirs;
 			vector<string> voxFiles;
@@ -93,8 +95,11 @@ int main(int argc, char** argv) {
 
 			/////////////////////////////////
 
-			string	mtlFile = paramManager.getValueOf("-m");
-			bool	doSplit	= paramManager.hasValue("-s");
+			float	scale			= paramManager.hasValue("-sc")? str2float(paramManager.getValueOf("-sc")): 0.03125f;
+
+			string	mtlFile 		= paramManager.getValueOf("-m");
+			bool	doSplit			= paramManager.hasValue("-s");
+			string	autoSplitVal	= paramManager.getValueOf("-as");
 			int		fileIdx	= 1;
 			for(string path : dirs) {
 				if(isDir(path)) {
@@ -104,6 +109,11 @@ int main(int argc, char** argv) {
 						string name	= dp->d_name;
 						if(name != "." and name != "..") {
 							if(endsWith(tolower(name), ".vox")) {
+								if(not autoSplitVal.empty()) {
+									string ending	= name.substr(0, name.length() - 4);
+									doSplit			= endsWith(ending, autoSplitVal);
+								}
+
 								string out		= outDir + "/" + path + "/" + name;
 								out.replace(out.find_last_of(".vox") - 3, 4, ".obj");
 
@@ -112,7 +122,7 @@ int main(int argc, char** argv) {
 										<< " => ";
 								int result = singleVOX2OBJ(
 									path + "/" + name, out,
-									mtlFile, doSplit
+									mtlFile, doSplit, scale
 								);
 								if(result > 0) {
 									cout << "Done! (" << result << " parts)" << endl;
@@ -132,10 +142,18 @@ int main(int argc, char** argv) {
 			cerr << "Flags -id and -od are usefull only when used together! Aborting...";
 			return 1;
 		} else {
+			string	name			= paramManager.getValueOf("-i");
+			bool	doSplit			= paramManager.hasValue("-s");
+			string	autoSplitVal	= paramManager.getValueOf("-as");
+			if(not autoSplitVal.empty()) {
+				string ending	= tolower(name).substr(0, name.length() - 4);
+				doSplit			= endsWith(ending, autoSplitVal);
+			}
+
 			if(singleVOX2OBJ(
-				paramManager.getValueOf("-i"), paramManager.getValueOf("-o"),
-				paramManager.getValueOf("-m"),
-				paramManager.hasValue("-s")
+				name, paramManager.getValueOf("-o"),
+				paramManager.getValueOf("-m"), doSplit,
+				paramManager.hasValue("-sc")? str2float(paramManager.getValueOf("-sc")): 0.03125f
 			) == 0) {
 				return 1;
 			}
@@ -145,9 +163,10 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = false) {
+int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = false, float scale = 0.03125f) {
 	VOXModel	vox;
 	Model 		model;
+	model.SetScale(scale);
 
 	if(inPath.empty()) {
 		cerr	<< "No input file given! Aborting!" << endl;

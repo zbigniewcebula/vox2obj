@@ -37,8 +37,12 @@ class Model {
 
 		vector<Voxel*>	voxel;
 		vector<int>		colorList;
+
+		float			scale	= 0.03125f;
+
+		vec4			size;
 	public:
-		string			name = "Model";
+		string			name	= "Model";
 
 		Model() {}
 		~Model() {
@@ -55,6 +59,8 @@ class Model {
 				voxel.clear();
 			}
 			colorList.clear();
+
+			size.Set(0, 0, 0, 0);
 		}
 
 		void LoadVOX(VOXModel& vox) {
@@ -71,6 +77,8 @@ class Model {
 				{0, -1, 0},	//front
 				{-1, 0, 0}	//left
 			};
+
+			size.Set(vox.SizeX(), vox.SizeY(), vox.SizeZ(), 0);
 
 			for(int z = 0; z < vox.SizeZ(); ++z)
 				for(int y = 0; y < vox.SizeY(); ++y)
@@ -216,18 +224,19 @@ class Model {
 			}
 			hFile << endl;
 
-			int offsetX = 0;//-vox.SizeX() / 2;
-			int offsetY = 0;//-vox.SizeY() / 2;
+			float offsetX = size.x * 0.5f;
+			float offsetY = 0;
+			float offsetZ = -size.z * 0.5f;
 
 			for(size_t i = 0; i < voxel.size(); ++i) {
 				for(int j = 0; j < 8; ++j) {
 					if(voxel[i]->vertex[j].a > -1) {
 						hFile	<< "v "
-								<< ((voxel[i]->vertex[j].x + offsetX)  / 32.0f)
+								<< ((voxel[i]->vertex[j].x + offsetX) * scale)
 								<< ' '
-								<< ((voxel[i]->vertex[j].y + offsetY)  / 32.0f)
+								<< ((voxel[i]->vertex[j].y + offsetY) * scale)
 								<< ' '
-								<< (voxel[i]->vertex[j].z / 32.0f)
+								<< ((voxel[i]->vertex[j].z + offsetZ) * scale)
 						<< endl;
 					}
 				}
@@ -256,6 +265,10 @@ class Model {
 			hFile << endl;
 			hFile.flush();
 			hFile.close();
+		}
+
+		void SetScale(float newScale) {
+			scale	= newScale;
 		}
 };
 

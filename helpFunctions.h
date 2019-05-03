@@ -23,6 +23,18 @@ string tostring(int number) {
 	ss	<< number;
 	return ss.str();
 }
+string tostring(float number) {
+	stringstream ss;
+	ss	<< number;
+	return ss.str();
+}
+float str2float(string str) {
+#if __unix__
+	return stof(str);
+#else
+	return atof(str.c_str());
+#endif
+}
 
 bool startsWith(const string& haystack, const string& needle) {
 	return	needle.length() <= haystack.length() 
