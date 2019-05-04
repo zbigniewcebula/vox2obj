@@ -116,7 +116,7 @@ class ParamManager {
 					} else if((*lastParam) == "-h") {
 						printHelp();
 						return false;
-					} else if((*lastParam) == "-s") {
+					} else if((*lastParam) == "-s" || (*lastParam) == "-ms") {
 						(*lastParam).value	= "1";
 					} else if((*lastParam).value != "") {
 						cerr	<< "Parameter \"" << tempStr << "\" used multiple times! Aborting..." << endl;

@@ -12,10 +12,10 @@ class Voxel {
 		//vec4 vox;
 
 		//pos + vertex ID
-		vec4 vertex[8];
+		vec4i vertex[8];
 
 		//vertexID, vertexID, vertexID, trisID
-		vec4 triangle[12];
+		vec4i triangle[12];
 
 		Voxel() {}
 
@@ -40,7 +40,7 @@ class Model {
 
 		float			scale	= 0.03125f;
 
-		vec4			size;
+		vec4i			size;
 	public:
 		string			name	= "Model";
 
@@ -63,13 +63,28 @@ class Model {
 			size.Set(0, 0, 0, 0);
 		}
 
+		vec4f Center() {
+			vec4f ret(0, 0, 0, 0);
+			if(voxel.size() > 0) {
+				for(Voxel* v : voxel) {
+					for(int i = 0; i < 8; ++i) {
+						ret += v->vertex[i];
+					}
+				}
+			}
+
+			return ret * (1.0f / (voxel.size() * 8.0f)) + vec4<float>(
+				size.x * 0.5f, 0, -size.z * 0.5f, 0
+			);
+		}
+
 		void LoadVOX(VOXModel& vox) {
 			int vID = 0;
 			int tID = 0;
 
 			Clear();
 
-			vec4 normals[6] = {
+			vec4i normals[6] = {
 				{0, 0, 1},	//up
 				{0, 1, 0},	//back
 				{1, 0, 0},	//right

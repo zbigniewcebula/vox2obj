@@ -9,25 +9,26 @@
 
 using namespace std;
 
+template<typename T>
 class vec4 {
 	public:
 		union {
 			struct {
-				int r;
-				int g;
-				int b;
-				int a;
+				T r;
+				T g;
+				T b;
+				T a;
 			};
 			struct {
-				int x;
-				int y;
-				int z;
-				int w;
+				T x;
+				T y;
+				T z;
+				T w;
 			};
-			int	raw[4];
+			T	raw[4];
 		};
 
-		vec4(int R = 0, int G = 0, int B = 0, int A = 0)
+		vec4(T R = 0, T G = 0, T B = 0, T A = 0)
 			:	r(R), g(G), b(B), a(A)
 		{}
 		vec4(const vec4& org)
@@ -35,14 +36,14 @@ class vec4 {
 		{}
 
 		//Methods
-		vec4& Set(int R, int G, int B, int A) {
+		vec4<T>& Set(T R, T G, T B, T A) {
 			r	= R;
 			g	= G;
 			b	= B;
 			a	= A;
 			return *this;
 		}
-		vec4& Set(int R, int G, int B) {
+		vec4<T>& Set(T R, T G, T B) {
 			r	= R;
 			g	= G;
 			b	= B;
@@ -50,21 +51,21 @@ class vec4 {
 		}
 
 		//Assigment
-		vec4& operator=(const vec4& org) {
+		vec4<T>& operator=(const vec4<T>& org) {
 			r	= org.r;
 			g	= org.g;
 			b	= org.b;
 			a	= org.a;
 			return *this;
 		}
-		vec4& operator+=(vec4& org) {
+		vec4<T>& operator+=(vec4<T>& org) {
 			r	+= org.r;
 			g	+= org.g;
 			b	+= org.b;
 			a	+= org.a;
 			return *this;
 		}
-		vec4& operator-=(vec4& org) {
+		vec4<T>& operator-=(vec4<T>& org) {
 			r	-= org.r;
 			g	-= org.g;
 			b	-= org.b;
@@ -73,14 +74,14 @@ class vec4 {
 		}
 
 		//Grouping
-		vector<vec4> operator,(vec4& neigh) {
-			vector<vec4>	lst;
+		vector<vec4<T>> operator,(vec4<T>& neigh) {
+			vector<vec4<T>>	lst;
 			lst.emplace_back(*this);
 			lst.emplace_back(neigh);
 			return lst;
 		}
-		vector<vec4> operator,(vector<vec4>& neighList) {
-			vector<vec4>	lst;
+		vector<vec4<T>> operator,(vector<vec4<T>>& neighList) {
+			vector<vec4<T>>	lst;
 			lst.reserve(1 + neighList.size());
 			lst.emplace_back(*this);
 			lst.insert(lst.begin() + 1, neighList.begin(), neighList.end());
@@ -88,13 +89,13 @@ class vec4 {
 		}
 
 		//Comparation
-		inline bool operator==(vec4& cmp) const {
+		inline bool operator==(vec4<T>& cmp) const {
 			return	r == cmp.r
 				&&	g == cmp.g
 				&&	b == cmp.b
 				&&	a == cmp.a;
 		}
-		inline bool operator!=(vec4& cmp) const {
+		inline bool operator!=(vec4<T>& cmp) const {
 			return	r != cmp.r
 				||	g != cmp.g
 				||	b != cmp.b
@@ -102,53 +103,87 @@ class vec4 {
 		}
 
 		//Artmetic
-		vec4 operator*(vec4& org) const {
+		vec4<T> operator*(float mult) const {
+			return vec4<T>(
+				r * mult, g * mult, b * mult, a * mult
+			);
+		}
+		vec4<T> operator*(vec4<T>& org) const {
 			float	compounds[8] = {
 				r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f,
 				org.r / 255.0f, org.g / 255.0f, org.b / 255.0f, org.a / 255.0f
 			};
-			return vec4(
+			return vec4<T>(
 				(compounds[0] * compounds[4]) * 255.0f,
 				(compounds[1] * compounds[5]) * 255.0f,
 				(compounds[2] * compounds[6]) * 255.0f,
 				(compounds[3] * compounds[7]) * 255.0f
 			);
 		}
-		vec4 operator+(vec4& org) const {
-			return vec4(
-				vec4::Clamp(r + org.r), vec4::Clamp(g + org.g), vec4::Clamp(b + org.b), vec4::Clamp(a + org.a)
+		vec4<T> operator+(vec4<T>& org) const {
+			return vec4<T>(
+				(r + org.r), (g + org.g), (b + org.b), (a + org.a)
 			);
 		}
-		vec4 operator-(vec4& org) const {
-			return vec4(
-				vec4::Clamp(r - org.r), vec4::Clamp(g - org.g), vec4::Clamp(b - org.b), vec4::Clamp(a - org.a)
+		vec4<T> operator-(vec4<T>& org) const {
+			return vec4<T>(
+				(r - org.r), (g - org.g), (b - org.b), (a - org.a)
 			);
 		}
 
-	private:
-		static int Clamp(int val) {
-			return val < 0? 0: (val > 255? 255: val);
+		vec4<T> operator+(vec4<T> org) const {
+			return vec4<T>(
+				(r + org.r), (g + org.g), (b + org.b), (a + org.a)
+			);
+		}
+		vec4<T> operator-(vec4<T> org) const {
+			return vec4<T>(
+				(r - org.r), (g - org.g), (b - org.b), (a - org.a)
+			);
+		}
+
+		void print() {
+			cout << "(" << r << "; " << g << "; " << b << ")";
 		}
 };
+typedef vec4<int>	vec4i;
+typedef vec4<float>	vec4f;
 
 //Additional operators for vector of vec4's
-vector<vec4> operator,(vector<vec4>& a, vector<vec4>& b) {
-	vector<vec4>	lst;
+template<typename T>
+vector<vec4<T>> operator,(vector<vec4<T>>& a, vector<vec4<T>>& b) {
+	vector<vec4<T>>	lst;
 	lst.reserve(a.size() + b.size());
 	lst.insert(lst.end(), a.begin(), a.end());
 	lst.insert(lst.end(), b.begin(), b.end());
 	return lst;
 }
-vector<vec4> operator,(vector<vec4>& a, vec4& add) {
-	vector<vec4>	lst(a);
+template<typename T>
+vector<vec4<T>> operator,(vector<vec4<T>>& a, vec4<T>& add) {
+	vector<vec4<T>>	lst(a);
 	lst.emplace_back(add);
 	return lst;
 }
-inline vector<vec4> operator+(vector<vec4>& a, vector<vec4>& b) {
+template<typename T>
+inline vector<vec4<T>> operator+(vector<vec4<T>>& a, vector<vec4<T>>& b) {
 	return (a, b);
 }
-inline vector<vec4> operator+(vector<vec4>& a, vec4& add) {
+template<typename T>
+inline vector<vec4<T>> operator+(vector<vec4<T>>& a, vec4<T>& add) {
 	return (a, add);
+}
+
+template<typename T, typename K>
+inline vec4<K> operator+(vec4<T>& a, vec4<K>& b) {
+	return vec4<K>(a.r + b.r, a.g + b.g, a.b + b.b, a.a + b.a);
+}
+template<typename T, typename K>
+inline vec4<T>& operator+=(vec4<T>& a, vec4<K>& b) {
+	a.r += b.r;
+	a.g += b.g;
+	a.b += b.b;
+	a.a += b.a;
+	return a;
 }
 
 class VOXModel {
@@ -164,8 +199,8 @@ class VOXModel {
 		
 		int			numVoxels	= 0;
 		
-		vec4		palette[256];
-		vec4*		voxels		= nullptr;
+		vec4i		palette[256];
+		vec4i*		voxels		= nullptr;
 		
 		int			version		= 0;
 	public:
@@ -221,7 +256,7 @@ class VOXModel {
 			if(voxels not_eq nullptr)
 				delete[]	voxels;
 
-			voxels	= new vec4[numVoxels];
+			voxels	= new vec4i[numVoxels];
 			int 	i = 0;
 			for(z = 0; z < sizeZ; ++z)
 				for(y = 0; y < sizeY; ++y)
@@ -231,7 +266,7 @@ class VOXModel {
 
 		int VoxelColorID(int x, int y, int z) const {
 			for(int i = 0; i < numVoxels; ++i) {
-				vec4&	v = voxels[i];
+				vec4i&	v = voxels[i];
 				if(v.x == x and v.y == y and v.z == z) {
 					return v.w;
 				}
@@ -246,7 +281,7 @@ class VOXModel {
 			and numVoxels > 0
 			) {
 				for(int i = 0; i < numVoxels; ++i) {
-					vec4&	v = voxels[i];
+					vec4i&	v = voxels[i];
 					if(v.x == x and v.y == y and v.z == z) {
 						v.w	= idx;
 						return;
@@ -259,11 +294,11 @@ class VOXModel {
 			if(index > -1 and index < 256)
 				palette[index].Set(r, g, b, a);
 		}
-		void SetPaletteColor(int index, const vec4& clr) {
+		void SetPaletteColor(int index, const vec4i& clr) {
 			if(index > -1 and index < 256)
 				palette[index]	= clr;
 		}
-		vec4& PaletteColor(int index) {
+		vec4i& PaletteColor(int index) {
 			if(index >= 256 or index < 0)
 				index	= 0;
 
@@ -282,7 +317,7 @@ class VOXModel {
 			//--
 			return 0xFFFF;
 		}
-		inline int FindPaletteColorIndex(const vec4& clr) {
+		inline int FindPaletteColorIndex(const vec4i& clr) {
 			return FindPaletteColorIndex(clr.r, clr.g, clr.b, clr.a);
 		}
 
@@ -306,7 +341,7 @@ class VOXModel {
 			hFile.write(reinterpret_cast<char*>(&version), 4);
 			hFile.write("MAIN", 4);
 			hFile.write("\0\0\0\0", 4);
-			chunkSize	= numVoxels * sizeof(vec4) + 0x434;	
+			chunkSize	= numVoxels * sizeof(vec4i) + 0x434;	
 			hFile.write(reinterpret_cast<char*>(&chunkSize), 4);
 
 			hFile.write("SIZE", 4);
@@ -319,7 +354,7 @@ class VOXModel {
 
 			//Voxels
 			hFile.write("XYZI", 4);
-			chunkSize	= 4 + numVoxels * sizeof(vec4);
+			chunkSize	= 4 + numVoxels * sizeof(vec4i);
 			hFile.write(reinterpret_cast<char*>(&chunkSize), 4);	
 			hFile.write("\0\0\0\0", 4);
 			hFile.write(reinterpret_cast<char*>(&numVoxels), 4);
@@ -483,7 +518,7 @@ class VOXModel {
 							return false;
 						}
 						if(numVoxels > 0) {
-							voxels	= new vec4[numVoxels];
+							voxels	= new vec4i[numVoxels];
 							struct derp {
 								unsigned char x;
 								unsigned char y;
@@ -505,11 +540,11 @@ class VOXModel {
 					}
 					case(Chunk::Type::RGBA): {
 						//Clean old palette
-						memset(reinterpret_cast<void*>(palette), 0, sizeof(vec4) * 255);
+						memset(reinterpret_cast<void*>(palette), 0, sizeof(vec4i) * 255);
 
 						//Last color is not used, so we only need to read 255 colors
-						hFile.read(reinterpret_cast<char*>(palette + 1), sizeof(vec4) * 255);
-						hFile.seekg(static_cast<int>(hFile.tellg()) + sizeof(vec4));
+						hFile.read(reinterpret_cast<char*>(palette + 1), sizeof(vec4i) * 255);
+						hFile.seekg(static_cast<int>(hFile.tellg()) + sizeof(vec4i));
 
 						customPalette	= true;
 					}
@@ -583,7 +618,7 @@ class VOXModel {
 				0xff880000, 0xff770000, 0xff550000, 0xff440000, 0xff220000, 0xff110000, 0xffeeeeee, 0xffdddddd,
 				0xffbbbbbb, 0xffaaaaaa, 0xff888888, 0xff777777, 0xff555555, 0xff444444, 0xff222222, 0xff111111,
 			};
-			memcpy(reinterpret_cast<void*>(palette), defaultPalette, sizeof(vec4) * 255);
+			memcpy(reinterpret_cast<void*>(palette), defaultPalette, sizeof(vec4i) * 255);
 		}
 };
 

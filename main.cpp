@@ -20,7 +20,7 @@
 
 using namespace std;
 
-int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split, float scale);
+int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split, float scale, bool markSides);
 
 int main(int argc, char** argv) {
 	//Checking args
@@ -46,8 +46,8 @@ int main(int argc, char** argv) {
 	paramManager.addParam("-s", "--split", "Takes separated parts of VOX model and splits them into separated OBJs", "");
 	paramManager.addParam("-as", "--auto-split", "Uses -s flag on every file with given sufinx in VOX file name (overrites -s flag)", "SUFIX");
 	paramManager.addParam("-sc", "--scale", "Changes scale of output OBJ, default: 0.03125", "SCALE");
+	paramManager.addParam("-ms", "--mark-sides", "Adds side indicator L or R to OBJ file name after spliting (use with -s or -as flags)", "");
 	//TODO
-	paramManager.addParam("-ms", "--mark-sides", "Adds side indicator L or R to OBJ file name after spliting (use with -s or -as flags	)", "");
 	paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions", "OUTPUT_LOG");
 
 
@@ -122,7 +122,8 @@ int main(int argc, char** argv) {
 										<< " => ";
 								int result = singleVOX2OBJ(
 									path + "/" + name, out,
-									mtlFile, doSplit, scale
+									mtlFile, doSplit, scale,
+									paramManager.hasValue("-ms")
 								);
 								if(result > 0) {
 									cout << "Done! (" << result << " parts)" << endl;
@@ -153,7 +154,8 @@ int main(int argc, char** argv) {
 			if(singleVOX2OBJ(
 				name, paramManager.getValueOf("-o"),
 				paramManager.getValueOf("-m"), doSplit,
-				paramManager.hasValue("-sc")? str2float(paramManager.getValueOf("-sc")): 0.03125f
+				paramManager.hasValue("-sc")? str2float(paramManager.getValueOf("-sc")): 0.03125f,
+				paramManager.hasValue("-ms")
 			) == 0) {
 				return 1;
 			}
@@ -163,7 +165,7 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = false, float scale = 0.03125f) {
+int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = false, float scale = 0.03125f, bool markSides = false) {
 	VOXModel	vox;
 	Model 		model;
 	model.SetScale(scale);
@@ -199,10 +201,22 @@ int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = fa
 				outPath.replace(lastOBJ - 3, 4, "_");
 			}
 
+			string sideAddition;
 			for(VOXModel* mdl : models) {
 				model.LoadVOX(*mdl);
+				if(markSides) {
+					vec4 center = model.Center();
+					center.print(); cout << endl;
+					if(center.x < 0) {
+						sideAddition = "_L";
+					} else if(center.x > 0) {
+						sideAddition = "_R";
+					} else {
+						sideAddition = "_C";
+					}
+				}
 				model.SaveOBJ(
-					outPath + tostring(partNum++) + ".obj",
+					outPath + tostring(partNum++) + sideAddition + ".obj",
 					mtlPath
 				);
 				delete mdl;
