@@ -47,8 +47,7 @@ int main(int argc, char** argv) {
 	paramManager.addParam("-as", "--auto-split", "Uses -s flag on every file with given sufinx in VOX file name (overrites -s flag)", "SUFIX");
 	paramManager.addParam("-sc", "--scale", "Changes scale of output OBJ, default: 0.03125", "SCALE");
 	paramManager.addParam("-ms", "--mark-sides", "Adds side indicator L or R to OBJ file name after spliting (use with -s or -as flags)", "");
-	//TODO
-	paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions", "OUTPUT_LOG");
+	paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions (use with -id and -od)", "OUTPUT_LOG");
 
 
 	if(paramManager.process(argc, argv) == false)
@@ -95,6 +94,10 @@ int main(int argc, char** argv) {
 
 			/////////////////////////////////
 
+			ofstream hLog;
+			if(paramManager.hasValue("-fl"))
+				hLog.open(paramManager.getValueOf("-fl"), ios::trunc | ios::out);
+
 			float	scale			= paramManager.hasValue("-sc")? str2float(paramManager.getValueOf("-sc")): 0.03125f;
 
 			string	mtlFile 		= paramManager.getValueOf("-m");
@@ -129,6 +132,8 @@ int main(int argc, char** argv) {
 									cout << "Done! (" << result << " parts)" << endl;
 								} else {
 									cout << "Fail!!!!!!!!!!" << endl;
+									if(paramManager.hasValue("-fl") and hLog.good())
+										hLog << "Cannot convert file: " << (path + "/" + name) << endl;
 								}
 							}
 						}
@@ -137,6 +142,8 @@ int main(int argc, char** argv) {
 					closedir(dir);
 				}
 			}
+			if(paramManager.hasValue("-fl") and hLog.good())
+				hLog.close();
 		}
 	} else {
 		if(paramManager.hasValue("-id") or paramManager.hasValue("-od")) {
