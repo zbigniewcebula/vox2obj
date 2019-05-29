@@ -176,7 +176,7 @@ int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = fa
 	VOXModel	vox;
 	Model 		model;
 	model.SetScale(scale);
-
+	
 	if(inPath.empty()) {
 		cerr	<< "No input file given! Aborting!" << endl;
 		return 0;
@@ -234,7 +234,8 @@ int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = fa
 			return partNum;
 		}
 	}
-	model.LoadVOX(vox);
+	//model.LoadVOX(vox);
+	model.LoadVOXMarchingCubes(vox);
 	model.SaveOBJ(outPath, mtlPath);
 	return 1;
 }

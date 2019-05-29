@@ -31,7 +31,7 @@ class vec4 {
 		vec4(T R = 0, T G = 0, T B = 0, T A = 0)
 			:	r(R), g(G), b(B), a(A)
 		{}
-		vec4(const vec4& org)
+		vec4(const vec4<T>& org)
 			:	r(org.r), g(org.g), b(org.b), a(org.a)
 		{}
 
