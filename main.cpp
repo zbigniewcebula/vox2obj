@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
 	ParamManager	paramManager;
 	paramManager.addParamSeparator();
 	paramManager.addParam("-i", "--in", "Sets input VOX file", "INPUT_VOX");
-	paramManager.addParam("-o", "--out", "Sets output OBJ file (overrites existing file! disabled -i and -o flag)", "OUTPUT_OBJ");
+	paramManager.addParam("-o", "--out", "Sets output OBJ file (overrites existing file!)", "OUTPUT_OBJ");
 	//TODO
 	paramManager.addParam("-id", "--in-dir", "Sets input directory for recursively find VOX files (use with -od flag, relative dir)", "INPUT_VOX_DIR");
 	//TODO
@@ -212,7 +212,7 @@ int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = fa
 			for(VOXModel* mdl : models) {
 				model.LoadVOX(*mdl);
 				if(markSides) {
-					vec4 center = model.Center();
+					vec4f center = model.Center();
 					center.print(); cout << endl;
 					if(center.x < 0) {
 						sideAddition = "_L";

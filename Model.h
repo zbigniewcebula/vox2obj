@@ -4,6 +4,7 @@
 #include <vector>
 #include <fstream>
 #include <cstring>
+#include <cmath>
 
 #include "VOX.h"
 
@@ -49,431 +50,10 @@ class Model {
 		float			scale	= 0.03125f;
 
 		vec4i			size;
-	public:
-		string			name	= "Model";
 
-		Model() {}
-		~Model() {
-			Clear();
-		}
+		bool			marchingCube	= false;
 
-		void Clear() {
-			if(voxel.size() > 0) {
-				for(Voxel* v : voxel) {
-					if(v != nullptr) {
-						delete v;
-					}
-				}
-				voxel.clear();
-			}
-			colorList.clear();
-
-			size.Set(0, 0, 0, 0);
-		}
-
-		vec4f Center() {
-			vec4f ret(0, 0, 0, 0);
-			if(voxel.size() > 0) {
-				for(Voxel* v : voxel) {
-					for(int i = 0; i < 8; ++i) {
-						ret += v->vertex[i];
-					}
-				}
-			}
-
-			return ret * (1.0f / (voxel.size() * 8.0f)) + vec4<float>(
-				size.x * 0.5f, 0, -size.z * 0.5f, 0
-			);
-		}
-
-		void LoadVOX(VOXModel& vox) {
-			int vID = 0;
-			int tID = 0;
-
-			Clear();
-
-			vec4i normals[6] = {
-				{0, 0, 1},	//up
-				{0, 1, 0},	//back
-				{1, 0, 0},	//right
-				{0, 0, -1},	//down
-				{0, -1, 0},	//front
-				{-1, 0, 0}	//left
-			};
-
-			size.Set(vox.SizeX(), vox.SizeY(), vox.SizeZ(), 0);
-
-			for(int z = 0; z < vox.SizeZ(); ++z)
-				for(int y = 0; y < vox.SizeY(); ++y)
-					for(int x = 0; x < vox.SizeX(); ++x) {
-						int ID = vox.VoxelColorID(x, y, z);
-						if(ID != 0) {
-							Voxel*	v = new Voxel();
-
-							auto it = find(colorList.begin(), colorList.end(), ID);
-							if(it == colorList.end()) {
-								colorList.push_back(ID);
-								v->colorListIndex = colorList.size() - 1;
-							} else {
-								v->colorListIndex = it - colorList.begin();
-							}
-							v->colorListIndex += 1;
-
-							for(int i = 0; i < 6; ++i) {
-								v->neighbors[i] = vox.VoxelColorID(
-									x + normals[i].x, y + normals[i].y, z + normals[i].z
-								) != 0;
-							}
-
-							int _1 = x + 1;
-							int _2 = y + 1;
-							//Dół
-							auto& A = v->vertex[0].Set(-x, z, y);
-							auto& B = v->vertex[1].Set(-_1, z, y);
-							auto& C = v->vertex[2].Set(-_1, z, _2);
-							auto& D = v->vertex[3].Set(-x, z, _2);
-							//Góra
-							++z;
-							auto& E = v->vertex[4].Set(-x,	z, y);
-							auto& F = v->vertex[5].Set(-_1, 	z, y);
-							auto& G = v->vertex[6].Set(-_1, z, _2);
-							auto& H = v->vertex[7].Set(-x, z, _2);
-							--z;
-
-							for(int i = 0; i < 8; ++i)
-								v->vertex[i].a = -1;
-							for(int i = 0; i < 12; ++i)
-								v->triangle[i].a = -1;
-							
-							if(!v->neighbors[0]) {	//up
-								H.a = 1;
-								G.a = 1;
-								E.a = 1;
-								F.a = 1;
-							}
-							if(!v->neighbors[1]) {	//back
-								H.a = 1;
-								G.a = 1;
-								C.a = 1;
-								D.a = 1;
-							}
-							if(!v->neighbors[2]) {	//right
-								B.a = 1;
-								G.a = 1;
-								C.a = 1;
-								F.a = 1;
-							}
-							if(!v->neighbors[4]) {	//front
-								B.a = 1;
-								A.a = 1;
-								E.a = 1;
-								F.a = 1;
-							}
-							if(!v->neighbors[3]) {	//bottom
-								B.a = 1;
-								A.a = 1;
-								C.a = 1;
-								D.a = 1;
-							}
-							if(!v->neighbors[5]) {	//left
-								D.a = 1;
-								A.a = 1;
-								H.a = 1;
-								E.a = 1;
-							}
-
-							for(int i = 0; i < 8; ++i) {
-								if(v->vertex[i].a == 1)
-									v->vertex[i].a += vID++;
-							}
-
-							if(!v->neighbors[0]) {	//up
-								v->triangle[0].Set(H.a, E.a, F.a, tID++);
-								v->triangle[1].Set(H.a, F.a, G.a, tID++);
-							}
-							if(!v->neighbors[1]) {	//back
-								v->triangle[2].Set(C.a, H.a, G.a, tID++);
-								v->triangle[3].Set(C.a, D.a, H.a, tID++);
-							}
-							if(!v->neighbors[2]) {	//right
-								v->triangle[4].Set(B.a, G.a, F.a, tID++);
-								v->triangle[5].Set(B.a, C.a, G.a, tID++);
-							}
-							if(!v->neighbors[3]) {	//bottom
-								v->triangle[6].Set(D.a, C.a, B.a, tID++);
-								v->triangle[7].Set(D.a, B.a, A.a, tID++);
-							}
-							if(!v->neighbors[4]) {	//front
-								v->triangle[8].Set(A.a, B.a, E.a, tID++);
-								v->triangle[9].Set(B.a, F.a, E.a, tID++);
-							}
-							if(!v->neighbors[5]) {	//left
-								v->triangle[10].Set(D.a, A.a, E.a, tID++);
-								v->triangle[11].Set(D.a, E.a, H.a, tID++);
-							}
-
-							voxel.push_back(v);
-						}
-					}
-				//--
-			//--
-		}
-
-		void LoadVOXMarchingCubes(VOXModel& vox) {
-			int vID = 0;
-			int tID = 0;
-
-			Clear();
-
-			vec4i neighDirs[26] = {
-				{-1, -1, -1},
-				{-1, -1, 0},
-				{-1, -1, 1},
-				{-1, 0, -1},
-				{-1, 0, 0},
-				{-1, 0, 1},
-				{-1, 1, -1},
-				{-1, 1, 0},
-				{-1, 1, 1},
-				{0, -1, -1},
-				{0, -1, 0},
-				{0, -1, 1},
-				{0, 0, -1},
-				{0, 0, 1},
-				{0, 1, -1},
-				{0, 1, 0},
-				{0, 1, 1},
-				{1, -1, -1},
-				{1, -1, 0},
-				{1, -1, 1},
-				{1, 0, -1},
-				{1, 0, 0},
-				{1, 0, 1},
-				{1, 1, -1},
-				{1, 1, 0},
-				{1, 1, 1}
-			};
-
-			unsigned char neighBits[26] = {
-				//76543210
-				0b00001000,
-				0b10001000,
-				0b10000000,
-				//76543210
-				0b00001001,
-				0b10011001,
-				0b10010000,
-				//76543210
-				0b00000001,
-				0b00010001,
-				0b00010000,
-
-				//76543210
-				0b00001100,
-				0b11001100,
-				0b11010000,
-				//76543210
-				0b00001111,
-				0b11110000,
-				//76543210
-				0b00000011,
-				0b00110011,
-				0b00110000,
-
-				//76543210
-				0b00000100,
-				0b01000100,
-				0b01000000,
-				//76543210
-				0b00000110,
-				0b01100110,
-				0b01100000,
-				//76543210
-				0b00000010,
-				0b00100010,
-				0b00100000
-			};
-
-			size.Set(vox.SizeX(), vox.SizeY(), vox.SizeZ(), 0);
-
-			bool neighTemp[8];
-			memset(neighTemp, 0, sizeof(bool) * 8);
-
-			colorList.push_back(0);
-
-			vec4i*		edges[12];
-			edges[0]	= new vec4i(1, 2, 0);
-			edges[1]	= new vec4i(2, 1, 0);
-			edges[2]	= new vec4i(1, 0, 0);
-			edges[3]	= new vec4i(0, 1, 0);
-
-			edges[4]	= new vec4i(1, 2, 2);
-			edges[5]	= new vec4i(2, 1, 2);
-			edges[6]	= new vec4i(1, 0, 2);
-			edges[7]	= new vec4i(0, 1, 2);
-
-			edges[8]	= new vec4i(0, 2, 1);
-			edges[9]	= new vec4i(2, 2, 1);
-			edges[10]	= new vec4i(2, 0, 1);
-			edges[11]	= new vec4i(0, 0, 1);
-
-			for(int z = 0; z < vox.SizeZ(); ++z)
-				for(int y = 0; y < vox.SizeY(); ++y)
-					for(int x = 0; x < vox.SizeX(); ++x) {
-						int ID = vox.VoxelColorID(x, y, z);
-						if(ID == 0) {
-							int bits = 0;
-							
-							cout << "(" << x << ";" << y << ";" << z << ") ";
-							for(int i = 0; i < 26; ++i) {
-								bool res = vox.VoxelColorID(
-									x + neighDirs[i].x, y + neighDirs[i].y, z + neighDirs[i].z
-								) != 0;
-								if(res) {
-									bits |= neighBits[i];
-
-									cout << setw(5) << bits << " ";
-									cout << " => " << neighDirs[i].x << ";" << neighDirs[i].y << ";" << neighDirs[i].z;
-
-									break;
-								}
-							}
-							cout << endl;
-							
-							if(bits != 0) {
-								Voxel*	V = new Voxel();
-								V->colorListIndex = 0;
-
-								for(int i = 0; i < 12; ++i) {
-									V->vertex[i].Set(0, 0, 0, -1);
-									V->triangle[i].Set(0, 0, 0, -1);
-								}
-
-								for(int i = 0; i < 5; ++i) {
-									if(triangulation[bits][(i * 3) + 0] == -1) {
-										break;
-									}
-									
-									cout	<< triangulation[bits][(i * 3) + 0] << " "
-											<< triangulation[bits][(i * 3) + 1] << " "
-											<< triangulation[bits][(i * 3) + 2] << " "
-									<< endl;
-
-									int vIDX = vID;
-									V->vertex[(i * 3) + 0].Set(
-										edges[triangulation[bits][(i * 3) + 0]]->x + x * 2,
-										edges[triangulation[bits][(i * 3) + 0]]->y + y * 2,
-										edges[triangulation[bits][(i * 3) + 0]]->z + z * 2,
-										vID++
-									);
-
-									V->vertex[(i * 3) + 1].Set(
-										edges[triangulation[bits][(i * 3) + 1]]->x + x * 2,
-										edges[triangulation[bits][(i * 3) + 1]]->y + y * 2,
-										edges[triangulation[bits][(i * 3) + 1]]->z + z * 2,
-										vID++
-									);
-
-									V->vertex[(i * 3) + 2].Set(
-										edges[triangulation[bits][(i * 3) + 2]]->x + x * 2,
-										edges[triangulation[bits][(i * 3) + 2]]->y + y * 2,
-										edges[triangulation[bits][(i * 3) + 2]]->z + z * 2,
-										vID++
-									);
-
-									V->triangle[i].Set(vIDX, vIDX + 1, vIDX + 2, tID++);
-								}
-
-								voxel.push_back(V);
-
-								cout << endl;						
-							}
-						}
-					}
-				//--
-			//--
-
-			for(int i = 0; i < 12; ++i) {
-				delete edges[i];
-			}
-		}
-
-		void SaveOBJ(string outPath, string mtlFile) {
-			string vn = "221166554433";
-	
-			ofstream hFile(outPath, ios::trunc | ios::out);
-
-			hFile
-				<< "#" << voxel.size() << '\n'
-				<< "g " << (name == ""? "Model": name) << '\n'
-				<< "mtllib " << mtlFile << "\n"
-				<< "usemtl palette\n"
-				<< "\n"
-				<< "vn 0 0 1\n"
-				<< "vn 0 1 0\n"
-				<< "vn 1 0 0\n"
-				<< "vn 0 0 -1\n"
-				<< "vn 0 -1 0\n"
-				<< "vn -1 0 0\n"
-			<< endl;
-
-			for(int id : colorList) {
-				hFile 
-					<< "vt "
-					<< (id * texturePixelSize - halfTexturePixelSize)
-					<< " 0.5"
-				<< endl;
-			}
-			hFile << endl;
-
-			float offsetX = size.x * 0.5f;
-			float offsetY = 0;
-			float offsetZ = -size.z * 0.5f;
-
-			for(size_t i = 0; i < voxel.size(); ++i) {
-				for(int j = 0; j < 8; ++j) {
-					if(voxel[i]->vertex[j].a > -1) {
-						hFile	<< "v "
-								<< ((voxel[i]->vertex[j].x + offsetX) * scale)
-								<< ' '
-								<< ((voxel[i]->vertex[j].y + offsetY) * scale)
-								<< ' '
-								<< ((voxel[i]->vertex[j].z + offsetZ) * scale)
-						<< endl;
-					}
-				}
-			}
-			hFile << "\n\n";
-
-			for(size_t i = 0; i < voxel.size(); ++i) {
-				if(voxel[i] != nullptr)
-					for(int j = 0; j < 12; ++j) {
-						if(voxel[i]->triangle[j].a > -1)
-						hFile	<< "f "
-								<< int(voxel[i]->triangle[j].x) << '/'
-								<< voxel[i]->colorListIndex << "/"
-								<< int(vn[j] - '0') << " "
-
-								<< int(voxel[i]->triangle[j].y) << '/'
-								<< voxel[i]->colorListIndex << "/"
-								<< int(vn[j] - '0') << " "
-
-								<< int(voxel[i]->triangle[j].z) << '/'
-								<< voxel[i]->colorListIndex << "/"
-								<< int(vn[j] - '0')
-						<< endl;
-					}
-			}
-			hFile << endl;
-			hFile.flush();
-			hFile.close();
-		}
-
-		void SetScale(float newScale) {
-			scale	= newScale;
-		}
-	private:
-		static constexpr int edgeTable[256] = {
+		const int edgeTable[256] = {
 			0x0  , 0x109, 0x203, 0x30a, 0x406, 0x50f, 0x605, 0x70c,
 			0x80c, 0x905, 0xa0f, 0xb06, 0xc0a, 0xd03, 0xe09, 0xf00,
 			0x190, 0x99 , 0x393, 0x29a, 0x596, 0x49f, 0x795, 0x69c,
@@ -507,7 +87,7 @@ class Model {
 			0xf00, 0xe09, 0xd03, 0xc0a, 0xb06, 0xa0f, 0x905, 0x80c,
 			0x70c, 0x605, 0x50f, 0x406, 0x30a, 0x203, 0x109, 0x0
 		};
-		static constexpr int triangulation[256][16] = {
+		const int triangulation[256][16] = {
 			{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 			{0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 			{0, 1, 9, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -765,6 +345,441 @@ class Model {
 			{0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 			{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
 		};
+	public:
+		string			name	= "Model";
+
+		Model() {}
+		~Model() {
+			Clear();
+		}
+
+		void Clear() {
+			if(voxel.size() > 0) {
+				for(Voxel* v : voxel) {
+					if(v != nullptr) {
+						delete v;
+					}
+				}
+				voxel.clear();
+			}
+			colorList.clear();
+
+			size.Set(0, 0, 0, 0);
+		}
+
+		vec4f Center() {
+			vec4f ret(0, 0, 0, 0);
+			if(voxel.size() > 0) {
+				for(Voxel* v : voxel) {
+					for(int i = 0; i < 8; ++i) {
+						ret += v->vertex[i];
+					}
+				}
+			}
+
+			return ret * (1.0f / (voxel.size() * 8.0f)) + vec4<float>(
+				size.x * 0.5f, 0, -size.z * 0.5f, 0
+			);
+		}
+
+		void LoadVOX(VOXModel& vox) {
+			int vID = 0;
+			int tID = 0;
+
+			Clear();
+
+			vec4i normals[6] = {
+				{0, 0, 1},	//up
+				{0, 1, 0},	//back
+				{1, 0, 0},	//right
+				{0, 0, -1},	//down
+				{0, -1, 0},	//front
+				{-1, 0, 0}	//left
+			};
+
+			size.Set(vox.SizeX(), vox.SizeY(), vox.SizeZ(), 0);
+
+			for(int z = 0; z < vox.SizeZ(); ++z)
+				for(int y = 0; y < vox.SizeY(); ++y)
+					for(int x = 0; x < vox.SizeX(); ++x) {
+						int ID = vox.VoxelColorID(x, y, z);
+						if(ID != 0) {
+							Voxel*	v = new Voxel();
+
+							auto it = find(colorList.begin(), colorList.end(), ID);
+							if(it == colorList.end()) {
+								colorList.push_back(ID);
+								v->colorListIndex = colorList.size() - 1;
+							} else {
+								v->colorListIndex = it - colorList.begin();
+							}
+							v->colorListIndex += 1;
+
+							for(int i = 0; i < 6; ++i) {
+								v->neighbors[i] = vox.VoxelColorID(
+									x + normals[i].x, y + normals[i].y, z + normals[i].z
+								) != 0;
+							}
+
+							int _1 = x + 1;
+							int _2 = y + 1;
+							//Dół
+							auto& A = v->vertex[0].Set(-x, z, y);
+							auto& B = v->vertex[1].Set(-_1, z, y);
+							auto& C = v->vertex[2].Set(-_1, z, _2);
+							auto& D = v->vertex[3].Set(-x, z, _2);
+							//Góra
+							++z;
+							auto& E = v->vertex[4].Set(-x,	z, y);
+							auto& F = v->vertex[5].Set(-_1, 	z, y);
+							auto& G = v->vertex[6].Set(-_1, z, _2);
+							auto& H = v->vertex[7].Set(-x, z, _2);
+							--z;
+
+							for(int i = 0; i < 8; ++i)
+								v->vertex[i].a = -1;
+							for(int i = 0; i < 12; ++i)
+								v->triangle[i].a = -1;
+							
+							if(!v->neighbors[0]) {	//up
+								H.a = 1;
+								G.a = 1;
+								E.a = 1;
+								F.a = 1;
+							}
+							if(!v->neighbors[1]) {	//back
+								H.a = 1;
+								G.a = 1;
+								C.a = 1;
+								D.a = 1;
+							}
+							if(!v->neighbors[2]) {	//right
+								B.a = 1;
+								G.a = 1;
+								C.a = 1;
+								F.a = 1;
+							}
+							if(!v->neighbors[4]) {	//front
+								B.a = 1;
+								A.a = 1;
+								E.a = 1;
+								F.a = 1;
+							}
+							if(!v->neighbors[3]) {	//bottom
+								B.a = 1;
+								A.a = 1;
+								C.a = 1;
+								D.a = 1;
+							}
+							if(!v->neighbors[5]) {	//left
+								D.a = 1;
+								A.a = 1;
+								H.a = 1;
+								E.a = 1;
+							}
+
+							for(int i = 0; i < 8; ++i) {
+								if(v->vertex[i].a == 1)
+									v->vertex[i].a += vID++;
+							}
+
+							if(!v->neighbors[0]) {	//up
+								v->triangle[0].Set(H.a, E.a, F.a, tID++);
+								v->triangle[1].Set(H.a, F.a, G.a, tID++);
+							}
+							if(!v->neighbors[1]) {	//back
+								v->triangle[2].Set(C.a, H.a, G.a, tID++);
+								v->triangle[3].Set(C.a, D.a, H.a, tID++);
+							}
+							if(!v->neighbors[2]) {	//right
+								v->triangle[4].Set(B.a, G.a, F.a, tID++);
+								v->triangle[5].Set(B.a, C.a, G.a, tID++);
+							}
+							if(!v->neighbors[3]) {	//bottom
+								v->triangle[6].Set(D.a, C.a, B.a, tID++);
+								v->triangle[7].Set(D.a, B.a, A.a, tID++);
+							}
+							if(!v->neighbors[4]) {	//front
+								v->triangle[8].Set(A.a, B.a, E.a, tID++);
+								v->triangle[9].Set(B.a, F.a, E.a, tID++);
+							}
+							if(!v->neighbors[5]) {	//left
+								v->triangle[10].Set(D.a, A.a, E.a, tID++);
+								v->triangle[11].Set(D.a, E.a, H.a, tID++);
+							}
+
+							voxel.push_back(v);
+						}
+					}
+				//--
+			//--
+		}
+
+		void LoadVOXMarchingCubes(VOXModel& vox) {
+			int vID = 1;
+			int tID = 0;
+
+			Clear();
+
+			vec4i neighDirs[26] = {
+				{-1, 1, -1},//01
+				{1, 1, -1},//02
+				{1, -1, -1},//04
+				{-1, -1, -1},//08
+				
+				{-1, 1, 1},//10
+				{1, 1, 1},//20
+				{1, -1, 1},//40
+				{-1, -1, 1},//80
+				
+				{-1, 0, 0},//99
+				{0, -1, 0},//CC
+				{0, 0, -1},//0F
+				{0, 0, 1},//F0
+				{0, 1, 0},//33
+				{1, 0, 0},//66
+				{-1, -1, 0},//88
+				{-1, 0, -1},//09
+				{-1, 0, 1},//90
+				{-1, 1, 0},//11
+				{0, -1, -1},//0C
+				{0, -1, 1},//D0
+				{0, 1, -1},//03
+				{0, 1, 1},//30
+				{1, -1, 0},//44
+				{1, 0, -1},//06
+				{1, 0, 1},//60
+				{1, 1, 0}//22
+			};
+
+			unsigned char neighBits[26] = {
+				0b00000001,//01
+				0b00000010,//02
+				0b00000100,//04
+				0b00001000,//08
+
+				0b00010000,//10
+				0b00100000,//20
+				0b01000000,//40
+				0b10000000,//80
+				
+				0b10011001,//99
+				0b11001100,//CC
+				0b00001111,//0F
+				0b11110000,//F0
+				0b00110011,//33
+				0b01100110,//66
+				0b10001000,//88
+				0b00001001,//09
+				0b10010000,//90
+				0b00010001,//11
+				0b00001100,//0C
+				0b11010000,//D0
+				0b00000011,//03
+				0b00110000,//30
+				0b01000100,//44
+				0b00000110,//06
+				0b01100000,//60
+				0b00100010//22
+			};
+
+			size.Set(vox.SizeX() * 2, vox.SizeY() * 2, vox.SizeZ() * 2, 0);
+
+			colorList.push_back(0);
+
+			vec4i*		edges[12];
+			edges[0]	= new vec4i(1, 2, 0);
+			edges[1]	= new vec4i(2, 1, 0);
+			edges[2]	= new vec4i(1, 0, 0);
+			edges[3]	= new vec4i(0, 1, 0);
+
+			edges[4]	= new vec4i(1, 2, 2);
+			edges[5]	= new vec4i(2, 1, 2);
+			edges[6]	= new vec4i(1, 0, 2);
+			edges[7]	= new vec4i(0, 1, 2);
+
+			edges[8]	= new vec4i(0, 2, 1);
+			edges[9]	= new vec4i(2, 2, 1);
+			edges[10]	= new vec4i(2, 0, 1);
+			edges[11]	= new vec4i(0, 0, 1);
+
+			for(float z = 0; z < vox.SizeZ(); ++z) {
+				for(float y = 0; y < vox.SizeY(); ++y) {
+					for(float x = 0; x < vox.SizeX(); ++x) {
+						unsigned char bits = 0;
+						int ID = 0;
+
+						for(int i = 0; i < 8; ++i) {
+							bool res = vox.VoxelColorID(
+								round(x + 0.5 + neighDirs[i].x * 0.5),
+								round(y + 0.5 + neighDirs[i].y * 0.5),
+								round(z + 0.5 + neighDirs[i].z * 0.5)
+								//x + neighDirs[i].x,
+								//y + neighDirs[i].y,
+								//z + neighDirs[i].z
+							) == 0;
+
+							if(x == 0 && y == 0 && z == 0) {
+							cout	<< "================\n"
+									<<	round(x + 0.5 + neighDirs[i].x * 0.5) << endl
+									<<	round(y + 0.5 + neighDirs[i].y * 0.5) << endl
+									<<	round(z + 0.5 + neighDirs[i].z * 0.5) << endl
+									<< "==================";
+								}
+
+							if(res) {
+								bits |= neighBits[i];
+							}
+						}
+						//bits = ~bits;
+
+						if(bits != 0x0 && bits != 0xFF) {
+							Voxel*	V = new Voxel();
+							ID = vox.VoxelColorID(x, y, z);
+
+							auto it = find(colorList.begin(), colorList.end(), ID);
+							if(it == colorList.end()) {
+								colorList.push_back(ID);
+								V->colorListIndex = colorList.size() - 1;
+							} else {
+								V->colorListIndex = it - colorList.begin();
+							}
+							V->colorListIndex += 1;
+
+							for(int i = 0; i < 12; ++i) {
+								V->vertex[i].Set(0, 0, 0, -1);
+								V->triangle[i].Set(0, 0, 0, -1);
+							}
+
+							for(int i = 0; i < 5; ++i) {
+								if(triangulation[bits][(i * 3) + 0] == -1) {
+									break;
+								}
+
+								int X = x * 2;
+								int Y = y * 2;
+								int Z = z * 2;
+
+								int vIDX = vID;
+								V->vertex[(i * 3) + 0].Set(
+									edges[triangulation[bits][(i * 3) + 0]]->x + X,
+									edges[triangulation[bits][(i * 3) + 0]]->z + Z,
+									edges[triangulation[bits][(i * 3) + 0]]->y + Y,
+									vID++
+								);
+
+								V->vertex[(i * 3) + 1].Set(
+									edges[triangulation[bits][(i * 3) + 1]]->x + X,
+									edges[triangulation[bits][(i * 3) + 1]]->z + Z,
+									edges[triangulation[bits][(i * 3) + 1]]->y + Y,
+									vID++
+								);
+
+								V->vertex[(i * 3) + 2].Set(
+									edges[triangulation[bits][(i * 3) + 2]]->x + X,
+									edges[triangulation[bits][(i * 3) + 2]]->z + Z,
+									edges[triangulation[bits][(i * 3) + 2]]->y + Y,
+									vID++
+								);
+
+								V->triangle[i].Set(vIDX, vIDX + 1, vIDX + 2, tID++);
+							}
+
+							voxel.push_back(V);
+						}
+					}
+				}
+			}
+
+			for(int i = 0; i < 12; ++i) {
+				delete edges[i];
+			}
+			marchingCube = true;
+		}
+
+		void SaveOBJ(string outPath, string mtlFile) {
+			string vn = "221166554433";
+	
+			ofstream hFile(outPath, ios::trunc | ios::out);
+
+			hFile
+				<< "#" << voxel.size() << '\n'
+				<< "g " << (name == ""? "Model": name) << '\n'
+				<< "mtllib " << mtlFile << "\n"
+				<< "usemtl palette\n"
+				<< "\n"
+				<< "vn 0 0 1\n"
+				<< "vn 0 1 0\n"
+				<< "vn 1 0 0\n"
+				<< "vn 0 0 -1\n"
+				<< "vn 0 -1 0\n"
+				<< "vn -1 0 0\n"
+			<< endl;
+
+			if(marchingCube) {
+				scale *= 0.5;
+			}
+
+			for(int id : colorList) {
+				hFile 
+					<< "vt "
+					<< (id * texturePixelSize - halfTexturePixelSize)
+					<< " 0.5"
+				<< endl;
+			}
+			hFile << endl;
+
+			//float offsetX = size.x * 0.5f;
+			//float offsetY = 0;
+			//float offsetZ = -size.z * 0.5f;
+
+
+			float offsetX = -size.x * 0.5f;
+			float offsetY = 0;
+			float offsetZ = -size.z * 0.25f;
+
+			for(size_t i = 0; i < voxel.size(); ++i) {
+				for(int j = 0; j < (marchingCube? 12: 8); ++j) {
+					if(voxel[i]->vertex[j].a > -1) {
+						hFile	<< "v "
+								<< ((voxel[i]->vertex[j].x + offsetX) * scale)
+								<< ' '
+								<< ((voxel[i]->vertex[j].y + offsetY) * scale)
+								<< ' '
+								<< ((voxel[i]->vertex[j].z + offsetZ) * scale)
+						<< endl;
+					}
+				}
+			}
+			hFile << "\n\n";
+
+			for(size_t i = 0; i < voxel.size(); ++i) {
+				if(voxel[i] != nullptr)
+					for(int j = 0; j < 12; ++j) {
+						if(voxel[i]->triangle[j].a > -1)
+						hFile	<< "f "
+								<< int(voxel[i]->triangle[j].x) << '/'
+								<< voxel[i]->colorListIndex << "/"
+								<< int(vn[j] - '0') << " "
+
+								<< int(voxel[i]->triangle[j].y) << '/'
+								<< voxel[i]->colorListIndex << "/"
+								<< int(vn[j] - '0') << " "
+
+								<< int(voxel[i]->triangle[j].z) << '/'
+								<< voxel[i]->colorListIndex << "/"
+								<< int(vn[j] - '0')
+						<< endl;
+					}
+			}
+			hFile << endl;
+			hFile.flush();
+			hFile.close();
+		}
+
+		void SetScale(float newScale) {
+			scale	= newScale;
+		}
 };
 
 #endif

@@ -6,7 +6,7 @@ Requires:
 
 To do:
  - Optimization and cleanup
- - Add parameters like scale
  - [OPTIONAL] Add rotation
  - Add offset to set in middle of VOX size space
  - Add comments in OBJ file
+ - Marching Cubes flag
