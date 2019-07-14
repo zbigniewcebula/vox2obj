@@ -20,7 +20,10 @@
 
 using namespace std;
 
-int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split, float scale, bool markSides);
+int singleVOX2OBJ(
+	string inPath, string outPath, string mtlPath, bool split,
+	float scale, bool markSides, bool marchingCubes
+);
 
 int main(int argc, char** argv) {
 	//Checking args
@@ -47,7 +50,9 @@ int main(int argc, char** argv) {
 	paramManager.addParam("-as", "--auto-split", "Uses -s flag on every file with given sufinx in VOX file name (overrites -s flag)", "SUFIX");
 	paramManager.addParam("-sc", "--scale", "Changes scale of output OBJ, default: 0.03125", "SCALE");
 	paramManager.addParam("-ms", "--mark-sides", "Adds side indicator L or R to OBJ file name after spliting (use with -s or -as flags)", "");
-	paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions (use with -id and -od)", "OUTPUT_LOG");
+	paramManager.addParam("-mc", "--marching-cubes", "Uses Marching Cubes algorithm to generate output OBJ", "");
+
+	//paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions (use with -id and -od)", "OUTPUT_LOG");
 
 
 	if(paramManager.process(argc, argv) == false)
@@ -126,7 +131,7 @@ int main(int argc, char** argv) {
 								int result = singleVOX2OBJ(
 									path + "/" + name, out,
 									mtlFile, doSplit, scale,
-									paramManager.hasValue("-ms")
+									paramManager.hasValue("-ms"), paramManager.hasValue("-mc")
 								);
 								if(result > 0) {
 									cout << "Done! (" << result << " parts)" << endl;
@@ -162,7 +167,7 @@ int main(int argc, char** argv) {
 				name, paramManager.getValueOf("-o"),
 				paramManager.getValueOf("-m"), doSplit,
 				paramManager.hasValue("-sc")? str2float(paramManager.getValueOf("-sc")): 0.03125f,
-				paramManager.hasValue("-ms")
+				paramManager.hasValue("-ms"), paramManager.hasValue("-mc")
 			) == 0) {
 				return 1;
 			}
@@ -172,7 +177,7 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = false, float scale = 0.03125f, bool markSides = false) {
+int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = false, float scale = 0.03125f, bool markSides = false, bool marchingCubes = false) {
 	VOXModel	vox;
 	Model 		model;
 	model.SetScale(scale);
@@ -210,7 +215,11 @@ int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = fa
 
 			string sideAddition;
 			for(VOXModel* mdl : models) {
-				model.LoadVOX(*mdl);
+				if(marchingCubes) {
+					model.LoadVOXMarchingCubes(*mdl);
+				} else {
+					model.LoadVOX(*mdl);
+				}
 				if(markSides) {
 					vec4f center = model.Center();
 					center.print(); cout << endl;
@@ -234,8 +243,12 @@ int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = fa
 			return partNum;
 		}
 	}
-	//model.LoadVOX(vox);
-	model.LoadVOXMarchingCubes(vox);
+	if(marchingCubes) {
+		model.LoadVOXMarchingCubes(vox);	
+	} else {
+		model.LoadVOX(vox);	
+	}
+	
 	model.SaveOBJ(outPath, mtlPath);
 	return 1;
 }

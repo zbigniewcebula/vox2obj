@@ -603,9 +603,9 @@ class Model {
 			edges[10]	= new vec4i(2, 0, 1);
 			edges[11]	= new vec4i(0, 0, 1);
 
-			for(float z = 0; z < vox.SizeZ(); ++z) {
-				for(float y = 0; y < vox.SizeY(); ++y) {
-					for(float x = 0; x < vox.SizeX(); ++x) {
+			for(float z = -1; z < vox.SizeZ(); ++z) {
+				for(float y = -1; y < vox.SizeY(); ++y) {
+					for(float x = -1; x < vox.SizeX(); ++x) {
 						unsigned char bits = 0;
 						int ID = 0;
 
@@ -631,11 +631,118 @@ class Model {
 								bits |= neighBits[i];
 							}
 						}
-						//bits = ~bits;
+						bits = ~bits;
 
 						if(bits != 0x0 && bits != 0xFF) {
 							Voxel*	V = new Voxel();
-							ID = vox.VoxelColorID(x, y, z);
+
+							int X, Y, Z;
+
+							ID = vox.VoxelColorID(
+								x >= vox.SizeX() / 2? x: x + 1,
+								y >= vox.SizeY() / 2? y: y + 1,
+								z//z >= vox.SizeZ() * 0.5? z: z + 1
+							);
+
+							int prevID = vox.VoxelColorID(
+								x >= vox.SizeX() / 2? x - 1: x + 2,
+								y >= vox.SizeY() / 2? y: y + 1,
+								z//z >= vox.SizeZ() * 0.5? z: z + 1
+							);
+							int nextID = vox.VoxelColorID(
+								x >= vox.SizeX() / 2? x + 1: x,
+								y >= vox.SizeY() / 2? y: y + 1,
+								z//z >= vox.SizeZ() * 0.5? z: z + 1
+							);
+
+							int backID = vox.VoxelColorID(
+								x >= vox.SizeX() / 2? x: x + 1,
+								y >= vox.SizeY() / 2? y - 1: y + 2,
+								z//z >= vox.SizeZ() * 0.5? z: z + 1
+							);
+							int frontID = vox.VoxelColorID(
+								x >= vox.SizeX() / 2? x: x + 1,
+								y >= vox.SizeY() / 2? y + 1: y,
+								z//z >= vox.SizeZ() * 0.5? z: z + 1
+							);
+
+							int downID = vox.VoxelColorID(
+								x >= vox.SizeX() / 2? x: x + 1,
+								y >= vox.SizeY() / 2? y: y + 1,
+								z - 1
+							);
+							int upID = vox.VoxelColorID(
+								x >= vox.SizeX() / 2? x: x + 1,
+								y >= vox.SizeY() / 2? y: y + 1,
+								z + 1
+							);
+
+							if(ID == 0) {
+								//Try 1
+								ID = vox.VoxelColorID(
+									x >= vox.SizeX() / 2? x + 2: x - 1,
+									y,//y >= vox.SizeY() / 2? y - 1: y,
+									z//z >= vox.SizeZ() * 0.5? z: z + 1
+								);
+
+								//Try 5
+								if(ID == 0) {
+									for(int i = 8; i < 14; ++i) {
+										int newID = vox.VoxelColorID(
+											round(x + 0.5 + neighDirs[i].x * 0.5),
+											round(y + 0.5 + neighDirs[i].y * 0.5),
+											round(z + 0.5 + neighDirs[i].z * 0.5)
+										);
+										if(newID != 0) {
+											ID = newID;
+											break;
+										}
+									}
+								}
+
+								//Try 2
+								if(ID == 0) {
+									if(prevID == 0) {
+										ID = nextID;
+									} else {//if (nextID == 0) {
+										ID = prevID;
+									}
+								}
+
+								//Try 3
+								if(ID == 0) {
+									if(backID == 0) {
+										ID = frontID;
+									} else {//if (nextID == 0) {
+										ID = backID;
+									}
+								}
+
+								//Try 4
+								if(ID == 0) {
+									if(upID == 0) {
+										ID = downID;
+									} else {//if (nextID == 0) {
+										ID = upID;
+									}
+								}
+
+								//Try 6
+								if(ID == 0) {
+									for(int i = 0; i < 8; ++i) {
+										int newID = vox.VoxelColorID(
+											round(x + 0.5 + neighDirs[i].x * 0.5),
+											round(y + 0.5 + neighDirs[i].y * 0.5),
+											round(z + 0.5 + neighDirs[i].z * 0.5)
+										);
+										if(newID != 0) {
+											ID = newID;
+											break;
+										}
+									}
+								}
+							}
+							//	ID = 215;
 
 							auto it = find(colorList.begin(), colorList.end(), ID);
 							if(it == colorList.end()) {
@@ -656,9 +763,9 @@ class Model {
 									break;
 								}
 
-								int X = x * 2;
-								int Y = y * 2;
-								int Z = z * 2;
+								X = x * 2;
+								Y = y * 2;
+								Z = z * 2;
 
 								int vIDX = vID;
 								V->vertex[(i * 3) + 0].Set(
@@ -668,14 +775,14 @@ class Model {
 									vID++
 								);
 
-								V->vertex[(i * 3) + 1].Set(
+								V->vertex[(i * 3) + 2].Set(
 									edges[triangulation[bits][(i * 3) + 1]]->x + X,
 									edges[triangulation[bits][(i * 3) + 1]]->z + Z,
 									edges[triangulation[bits][(i * 3) + 1]]->y + Y,
 									vID++
 								);
 
-								V->vertex[(i * 3) + 2].Set(
+								V->vertex[(i * 3) + 1].Set(
 									edges[triangulation[bits][(i * 3) + 2]]->x + X,
 									edges[triangulation[bits][(i * 3) + 2]]->z + Z,
 									edges[triangulation[bits][(i * 3) + 2]]->y + Y,
