@@ -246,7 +246,7 @@ int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = fa
 	if(marchingCubes) {
 		model.LoadVOXMarchingCubes(vox);	
 	} else {
-		model.LoadVOX(vox);	
+		model.LoadVOX(vox);
 	}
 	
 	model.SaveOBJ(outPath, mtlPath);

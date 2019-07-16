@@ -24,12 +24,7 @@ class Voxel {
 		//Normal OBJ
 			//up, back, right
 			//down, front, left
-		//MarchingCubes
-			//Lower
-				//Front-Left Front-Right Back-Right Back-Left
-			//Upper
-				//Front-Left Front-Right Back-Right Back-Left
-		bool neighbors[8];
+		bool neighbors[6];
 
 		int colorListIndex = -1;
 
@@ -345,6 +340,15 @@ class Model {
 			{0, 3, 8, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 			{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}
 		};
+
+		const vec4i normals[6] = {
+			{0, 0, 1},	//up
+			{0, 1, 0},	//back
+			{1, 0, 0},	//right
+			{0, 0, -1},	//down
+			{0, -1, 0},	//front
+			{-1, 0, 0}	//left
+		};
 	public:
 		string			name	= "Model";
 
@@ -387,15 +391,6 @@ class Model {
 			int tID = 0;
 
 			Clear();
-
-			vec4i normals[6] = {
-				{0, 0, 1},	//up
-				{0, 1, 0},	//back
-				{1, 0, 0},	//right
-				{0, 0, -1},	//down
-				{0, -1, 0},	//front
-				{-1, 0, 0}	//left
-			};
 
 			size.Set(vox.SizeX(), vox.SizeY(), vox.SizeZ(), 0);
 
@@ -810,7 +805,7 @@ class Model {
 			ofstream hFile(outPath, ios::trunc | ios::out);
 
 			hFile
-				<< "#" << voxel.size() << '\n'
+				<< "#Voxel count: " << voxel.size() << '\n'
 				<< "g " << (name == ""? "Model": name) << '\n'
 				<< "mtllib " << mtlFile << "\n"
 				<< "usemtl palette\n"
@@ -836,32 +831,24 @@ class Model {
 			}
 			hFile << endl;
 
-			//float offsetX = size.x * 0.5f;
-			//float offsetY = 0;
-			//float offsetZ = -size.z * 0.5f;
-
-
 			float offsetX = -size.x * 0.5f;
 			float offsetY = 0;
 			float offsetZ = -size.z * 0.25f;
 
 			for(size_t i = 0; i < voxel.size(); ++i) {
-				for(int j = 0; j < (marchingCube? 12: 8); ++j) {
-					if(voxel[i]->vertex[j].a > -1) {
-						hFile	<< "v "
-								<< ((voxel[i]->vertex[j].x + offsetX) * scale)
-								<< ' '
-								<< ((voxel[i]->vertex[j].y + offsetY) * scale)
-								<< ' '
-								<< ((voxel[i]->vertex[j].z + offsetZ) * scale)
-						<< endl;
+				if(voxel[i] != nullptr) {
+					for(int j = 0; j < 12; ++j) {
+						if(voxel[i]->vertex[j].a > -1) {
+							hFile	<< "v "
+									<< ((voxel[i]->vertex[j].x + offsetX) * scale)
+									<< ' '
+									<< ((voxel[i]->vertex[j].y + offsetY) * scale)
+									<< ' '
+									<< ((voxel[i]->vertex[j].z + offsetZ) * scale)
+							<< endl;
+						}
 					}
-				}
-			}
-			hFile << "\n\n";
 
-			for(size_t i = 0; i < voxel.size(); ++i) {
-				if(voxel[i] != nullptr)
 					for(int j = 0; j < 12; ++j) {
 						if(voxel[i]->triangle[j].a > -1)
 						hFile	<< "f "
@@ -878,6 +865,9 @@ class Model {
 								<< int(vn[j] - '0')
 						<< endl;
 					}
+
+					hFile << "\n\n";
+				}
 			}
 			hFile << endl;
 			hFile.flush();
