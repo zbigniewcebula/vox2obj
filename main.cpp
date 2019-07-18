@@ -52,8 +52,9 @@ int main(int argc, char** argv) {
 	paramManager.addParam("-ms", "--mark-sides", "Adds side indicator L or R to OBJ file name after spliting (use with -s or -as flags)", "");
 	paramManager.addParam("-mc", "--marching-cubes", "Uses Marching Cubes algorithm to generate output OBJ", "");
 
-	//paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions (use with -id and -od)", "OUTPUT_LOG");
+	paramManager.addParam("-if", "--ignore-filter", "Ignores conversion of file if name/path contains given phrase (use with -id and -od)", "IGNORE_PHRASE");
 
+	paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions (use with -id and -od)", "OUTPUT_LOG");
 
 	if(paramManager.process(argc, argv) == false)
 		return 1;
@@ -89,7 +90,9 @@ int main(int argc, char** argv) {
 			vector<string> dirs;
 			vector<string> voxFiles;
 
-			string outDir	= paramManager.getValueOf("-od");
+			string	outDir			= paramManager.getValueOf("-od");
+			string	ignorePhrase	= paramManager.getValueOf("-if");
+			bool	ignoreFilter	= paramManager.hasValue("-if");
 
 			//Find directories structure
 			dirs.push_back(paramManager.getValueOf("-id"));
@@ -115,6 +118,12 @@ int main(int argc, char** argv) {
 					dirent*	dp	= readdir(dir);
 					do {
 						string name	= dp->d_name;
+						if(ignoreFilter and name.find(ignorePhrase) != string::npos) {
+							dp	= readdir(dir);
+							cout	<< "[IGNORED] " << outDir << '/' << path << '/' << name << endl;
+							continue;
+						}
+
 						if(name != "." and name != "..") {
 							if(endsWith(tolower(name), ".vox")) {
 								if(not autoSplitVal.empty()) {
@@ -122,12 +131,10 @@ int main(int argc, char** argv) {
 									doSplit			= endsWith(ending, autoSplitVal);
 								}
 
-								string out		= outDir + "/" + path + "/" + name;
+								string out		= outDir + '/' + path + '/' + name;
 								out.replace(out.find_last_of(".vox") - 3, 4, ".obj");
 
-								cout	<< "[" << (fileIdx++) << "] "
-										<< (path + "/" + name)
-										<< " => ";
+								cout	<< "[" << (fileIdx++) << "] " << out << " => " << flush;
 								int result = singleVOX2OBJ(
 									path + "/" + name, out,
 									mtlFile, doSplit, scale,
@@ -222,7 +229,6 @@ int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = fa
 				}
 				if(markSides) {
 					vec4f center = model.Center();
-					center.print(); cout << endl;
 					if(center.x < 0) {
 						sideAddition = "_L";
 					} else if(center.x > 0) {
@@ -230,6 +236,7 @@ int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = fa
 					} else {
 						sideAddition = "_C";
 					}
+					cout << sideAddition << ", ";
 				}
 				model.SaveOBJ(
 					outPath + tostring(partNum++) + sideAddition + ".obj",

@@ -609,18 +609,7 @@ class Model {
 								round(x + 0.5 + neighDirs[i].x * 0.5),
 								round(y + 0.5 + neighDirs[i].y * 0.5),
 								round(z + 0.5 + neighDirs[i].z * 0.5)
-								//x + neighDirs[i].x,
-								//y + neighDirs[i].y,
-								//z + neighDirs[i].z
 							) == 0;
-
-							if(x == 0 && y == 0 && z == 0) {
-							cout	<< "================\n"
-									<<	round(x + 0.5 + neighDirs[i].x * 0.5) << endl
-									<<	round(y + 0.5 + neighDirs[i].y * 0.5) << endl
-									<<	round(z + 0.5 + neighDirs[i].z * 0.5) << endl
-									<< "==================";
-								}
 
 							if(res) {
 								bits |= neighBits[i];
@@ -636,29 +625,29 @@ class Model {
 							ID = vox.VoxelColorID(
 								x >= vox.SizeX() / 2? x: x + 1,
 								y >= vox.SizeY() / 2? y: y + 1,
-								z//z >= vox.SizeZ() * 0.5? z: z + 1
+								z
 							);
 
 							int prevID = vox.VoxelColorID(
 								x >= vox.SizeX() / 2? x - 1: x + 2,
 								y >= vox.SizeY() / 2? y: y + 1,
-								z//z >= vox.SizeZ() * 0.5? z: z + 1
+								z
 							);
 							int nextID = vox.VoxelColorID(
 								x >= vox.SizeX() / 2? x + 1: x,
 								y >= vox.SizeY() / 2? y: y + 1,
-								z//z >= vox.SizeZ() * 0.5? z: z + 1
+								z
 							);
 
 							int backID = vox.VoxelColorID(
 								x >= vox.SizeX() / 2? x: x + 1,
 								y >= vox.SizeY() / 2? y - 1: y + 2,
-								z//z >= vox.SizeZ() * 0.5? z: z + 1
+								z
 							);
 							int frontID = vox.VoxelColorID(
 								x >= vox.SizeX() / 2? x: x + 1,
 								y >= vox.SizeY() / 2? y + 1: y,
-								z//z >= vox.SizeZ() * 0.5? z: z + 1
+								z
 							);
 
 							int downID = vox.VoxelColorID(
@@ -676,8 +665,8 @@ class Model {
 								//Try 1
 								ID = vox.VoxelColorID(
 									x >= vox.SizeX() / 2? x + 2: x - 1,
-									y,//y >= vox.SizeY() / 2? y - 1: y,
-									z//z >= vox.SizeZ() * 0.5? z: z + 1
+									y,
+									z
 								);
 
 								//Try 5
@@ -699,7 +688,7 @@ class Model {
 								if(ID == 0) {
 									if(prevID == 0) {
 										ID = nextID;
-									} else {//if (nextID == 0) {
+									} else {
 										ID = prevID;
 									}
 								}
@@ -708,7 +697,7 @@ class Model {
 								if(ID == 0) {
 									if(backID == 0) {
 										ID = frontID;
-									} else {//if (nextID == 0) {
+									} else {
 										ID = backID;
 									}
 								}
@@ -717,7 +706,7 @@ class Model {
 								if(ID == 0) {
 									if(upID == 0) {
 										ID = downID;
-									} else {//if (nextID == 0) {
+									} else {
 										ID = upID;
 									}
 								}
