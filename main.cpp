@@ -21,8 +21,10 @@
 using namespace std;
 
 int singleVOX2OBJ(
-	string inPath, string outPath, string mtlPath, bool split,
-	float scale, bool markSides, bool marchingCubes
+	string inPath, string outPath, string mtlPath,
+	bool split = false, float scale = 0.03125f,
+	bool markSides = false, bool marchingCubes = false,
+	const char* modelName = nullptr
 );
 
 int main(int argc, char** argv) {
@@ -36,9 +38,7 @@ int main(int argc, char** argv) {
 	paramManager.addParamSeparator();
 	paramManager.addParam("-i", "--in", "Sets input VOX file", "INPUT_VOX");
 	paramManager.addParam("-o", "--out", "Sets output OBJ file (overrites existing file!)", "OUTPUT_OBJ");
-	//TODO
 	paramManager.addParam("-id", "--in-dir", "Sets input directory for recursively find VOX files (use with -od flag, relative dir)", "INPUT_VOX_DIR");
-	//TODO
 	paramManager.addParam(
 		"-od", "--out-dir", "Sets output directory for recursively found VOX files (use with -id flag, relative dir), copying -id dirs structure", "OUTPUT_VOX_DIR"
 	);
@@ -138,7 +138,8 @@ int main(int argc, char** argv) {
 								int result = singleVOX2OBJ(
 									path + "/" + name, out,
 									mtlFile, doSplit, scale,
-									paramManager.hasValue("-ms"), paramManager.hasValue("-mc")
+									paramManager.hasValue("-ms"), paramManager.hasValue("-mc"),
+									name.substr(0, name.length() - 4).c_str()
 								);
 								if(result > 0) {
 									cout << "Done! (" << result << " parts)" << endl;
@@ -174,7 +175,8 @@ int main(int argc, char** argv) {
 				name, paramManager.getValueOf("-o"),
 				paramManager.getValueOf("-m"), doSplit,
 				paramManager.hasValue("-sc")? str2float(paramManager.getValueOf("-sc")): 0.03125f,
-				paramManager.hasValue("-ms"), paramManager.hasValue("-mc")
+				paramManager.hasValue("-ms"), paramManager.hasValue("-mc"),
+				name.substr(0, name.length() - 4).c_str()
 			) == 0) {
 				return 1;
 			}
@@ -184,9 +186,12 @@ int main(int argc, char** argv) {
 	return 0;
 }
 
-int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split = false, float scale = 0.03125f, bool markSides = false, bool marchingCubes = false) {
+int singleVOX2OBJ(string inPath, string outPath, string mtlPath, bool split, float scale, bool markSides, bool marchingCubes, const char* modelName) {
 	VOXModel	vox;
 	Model 		model;
+	if(modelName != nullptr) {
+		model.name = modelName;
+	}
 	model.SetScale(scale);
 	
 	if(inPath.empty()) {

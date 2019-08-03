@@ -28,6 +28,9 @@ class Voxel {
 
 		int colorListIndex = -1;
 
+		//Marching Cube
+		int normalIdx[12];
+
 		Voxel() {
 			memset(neighbors, 0, 8 * sizeof(bool));
 		}
@@ -793,18 +796,22 @@ class Model {
 	
 			ofstream hFile(outPath, ios::trunc | ios::out);
 
+			map<string, int> nMap; 
+
 			hFile
 				<< "#Voxel count: " << voxel.size() << '\n'
 				<< "g " << (name == ""? "Model": name) << '\n'
 				<< "mtllib " << mtlFile << "\n"
 				<< "usemtl palette\n"
 				<< "\n"
+				/*
 				<< "vn 0 0 1\n"
 				<< "vn 0 1 0\n"
 				<< "vn 1 0 0\n"
 				<< "vn 0 0 -1\n"
 				<< "vn 0 -1 0\n"
 				<< "vn -1 0 0\n"
+				*/
 			<< endl;
 
 			if(marchingCube) {
@@ -822,10 +829,40 @@ class Model {
 
 			float offsetX = -size.x * 0.5f;
 			float offsetY = 0;
-			float offsetZ = -size.z * 0.25f;
+			float offsetZ = -size.z * 0.5f;
 
+			int nIdx = 0;
 			for(size_t i = 0; i < voxel.size(); ++i) {
 				if(voxel[i] != nullptr) {
+					for(int j = 0; j < 4; ++j) {
+						if(voxel[i]->vertex[3 * j].a == -1)
+							continue;
+
+						vec4i&	A	= voxel[i]->vertex[3 * j];
+						vec4i&	B	= voxel[i]->vertex[3 * j + 1];
+						vec4i&	C	= voxel[i]->vertex[3 * j + 2];
+
+						vec4f	normalAB(B.x - A.x, B.y - A.y, B.z - A.z);
+						vec4f	normalAC(C.x - A.x, C.y - A.y, C.z - A.z);
+						vec4f	normalCross(normalAB.Cross(normalAC));
+						
+						stringstream ss;
+						ss	<< "vn " << normalCross.x 
+							<< " " << normalCross.y
+							<< " " << normalCross.z
+						;
+						string key = ss.str();
+						if(nMap.find(key) == nMap.end()) {
+							nMap[key] = nIdx;
+							voxel[i]->normalIdx[j] = nIdx;
+							++nIdx;
+
+							hFile << key << endl;
+						} else {
+							voxel[j]->normalIdx[j] = nMap[key];
+						}
+					}
+
 					for(int j = 0; j < 12; ++j) {
 						if(voxel[i]->vertex[j].a > -1) {
 							hFile	<< "v "
@@ -839,20 +876,24 @@ class Model {
 					}
 
 					for(int j = 0; j < 12; ++j) {
-						if(voxel[i]->triangle[j].a > -1)
-						hFile	<< "f "
-								<< int(voxel[i]->triangle[j].x) << '/'
-								<< voxel[i]->colorListIndex << "/"
-								<< int(vn[j] - '0') << " "
+						if(voxel[i]->triangle[j].a > -1) {
+							hFile	<< "f "
+									<< int(voxel[i]->triangle[j].x) << '/'
+									<< voxel[i]->colorListIndex << "/"
+									//<< int(vn[j] - '0') << " "
+									<< voxel[i]->normalIdx[int(j / 3)] << " "
 
-								<< int(voxel[i]->triangle[j].y) << '/'
-								<< voxel[i]->colorListIndex << "/"
-								<< int(vn[j] - '0') << " "
+									<< int(voxel[i]->triangle[j].y) << '/'
+									<< voxel[i]->colorListIndex << "/"
+									//<< int(vn[j] - '0') << " "
+									<< voxel[i]->normalIdx[int(j / 3)] << " "
 
-								<< int(voxel[i]->triangle[j].z) << '/'
-								<< voxel[i]->colorListIndex << "/"
-								<< int(vn[j] - '0')
-						<< endl;
+									<< int(voxel[i]->triangle[j].z) << '/'
+									<< voxel[i]->colorListIndex << "/"
+									//<< int(vn[j] - '0')
+									<< voxel[i]->normalIdx[int(j / 3)]
+							<< endl;
+						}
 					}
 
 					hFile << "\n\n";

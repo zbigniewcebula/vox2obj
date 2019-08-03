@@ -2,9 +2,11 @@
 #define __VOX_MODEL__
 
 #include <string>
+#include <sstream>
 #include <cstring>
 #include <fstream>
 #include <vector>
+#include <map>
 #include <functional>
 
 using namespace std;
@@ -48,6 +50,26 @@ class vec4 {
 			g	= G;
 			b	= B;
 			return *this;
+		}
+
+		float Length() {
+			return sqrt((x * x) + (y * y) + (z * z));
+		}
+
+		void NormalizeTo(vec4<float>& output) {
+			float len = Length();
+			output.Set(
+				x / len, y / len, z / len, w
+			);
+		}
+
+		vec4<float> Cross(const vec4<T>& b) {
+			vec4<float> result(
+				this->y * b.z - this->z * b.y,
+				this->z * b.x - this->x * b.z,
+				this->x * b.y - this->y * b.x
+			);
+			return result;
 		}
 
 		//Assigment
@@ -108,17 +130,11 @@ class vec4 {
 				r * mult, g * mult, b * mult, a * mult
 			);
 		}
-		vec4<T> operator*(vec4<T>& org) const {
-			float	compounds[8] = {
-				r / 255.0f, g / 255.0f, b / 255.0f, a / 255.0f,
-				org.r / 255.0f, org.g / 255.0f, org.b / 255.0f, org.a / 255.0f
-			};
-			return vec4<T>(
-				(compounds[0] * compounds[4]) * 255.0f,
-				(compounds[1] * compounds[5]) * 255.0f,
-				(compounds[2] * compounds[6]) * 255.0f,
-				(compounds[3] * compounds[7]) * 255.0f
-			);
+		float operator*(vec4<T>& org) const {
+			return	this->x * org.x
+				+	this->y * org.y
+				+	this->z * org.z
+			;
 		}
 		vec4<T> operator+(vec4<T>& org) const {
 			return vec4<T>(
@@ -127,7 +143,7 @@ class vec4 {
 		}
 		vec4<T> operator-(vec4<T>& org) const {
 			return vec4<T>(
-				(r - org.r), (g - org.g), (b - org.b), (a - org.a)
+				(r - org.r), (g - org.g), (b - org.b)//, (a - org.a)
 			);
 		}
 
@@ -138,7 +154,7 @@ class vec4 {
 		}
 		vec4<T> operator-(vec4<T> org) const {
 			return vec4<T>(
-				(r - org.r), (g - org.g), (b - org.b), (a - org.a)
+				(r - org.r), (g - org.g), (b - org.b)//, (a - org.a)
 			);
 		}
 
@@ -150,6 +166,12 @@ typedef vec4<int>	vec4i;
 typedef vec4<float>	vec4f;
 
 //Additional operators for vector of vec4's
+template<typename T>
+vec4<T> operator-(vec4<T>& a, vec4<T>& b) {
+	return vec4<T>(
+		a.r - b.r, a.g - b.g, a.b - b.b
+	);
+}
 template<typename T>
 vector<vec4<T>> operator,(vector<vec4<T>>& a, vector<vec4<T>>& b) {
 	vector<vec4<T>>	lst;
