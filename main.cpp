@@ -4,6 +4,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <chrono>
 #include <iterator>
 
 #include <cctype>
@@ -19,6 +20,7 @@
 #include "DirUtils.h"
 
 using namespace std;
+using namespace chrono;
 
 int singleVOX2OBJ(
 	string inPath, string outPath, string mtlPath,
@@ -54,7 +56,8 @@ int main(int argc, char** argv) {
 
 	paramManager.addParam("-if", "--ignore-filter", "Ignores conversion of file if name/path contains given phrase (use with -id and -od)", "IGNORE_PHRASE");
 
-	paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions (use with -id and -od)", "OUTPUT_LOG");
+	//paramManager.addParam("-fl", "--fail-log", "Creates log for failed VOX conversions (use with -id and -od)", "OUTPUT_LOG");
+	paramManager.addParam("-t", "--time", "Shows time of VOX to OBJ conversion", "");
 
 	if(paramManager.process(argc, argv) == false)
 		return 1;
@@ -82,6 +85,11 @@ int main(int argc, char** argv) {
 		hMTL.flush();
 		hMTL.close();
 	}
+
+	//Time
+	bool		timeShow	= paramManager.hasValue("-t");
+	time_point	start		= high_resolution_clock::now();
+	time_point	overallTime	= high_resolution_clock::now();
 
 	//Convertion
 	bool multipleFiles = (paramManager.hasValue("-id") and paramManager.hasValue("-od"));
@@ -126,6 +134,9 @@ int main(int argc, char** argv) {
 
 						if(name != "." and name != "..") {
 							if(endsWith(tolower(name), ".vox")) {
+								if(timeShow)
+									start = high_resolution_clock::now();
+
 								if(not autoSplitVal.empty()) {
 									string ending	= name.substr(0, name.length() - 4);
 									doSplit			= endsWith(ending, autoSplitVal);
@@ -135,6 +146,7 @@ int main(int argc, char** argv) {
 								out.replace(out.find_last_of(".vox") - 3, 4, ".obj");
 
 								cout	<< "[" << (fileIdx++) << "] " << out << " => " << flush;
+								
 								int result = singleVOX2OBJ(
 									path + "/" + name, out,
 									mtlFile, doSplit, scale,
@@ -142,12 +154,17 @@ int main(int argc, char** argv) {
 									name.substr(0, name.length() - 4).c_str()
 								);
 								if(result > 0) {
-									cout << "Done! (" << result << " parts)" << endl;
+									cout << "Done! (" << result << " parts)";
 								} else {
 									cout << "Fail!!!!!!!!!!" << endl;
 									if(paramManager.hasValue("-fl") and hLog.good())
-										hLog << "Cannot convert file: " << (path + "/" + name) << endl;
+										hLog << "Cannot convert file: " << (path + "/" + name);
 								}
+
+								if(timeShow)
+									cout << " " << duration_cast<milliseconds>(high_resolution_clock::now() - start).count() << "ms";
+
+								cout << endl;
 							}
 						}
 						dp	= readdir(dir);
@@ -181,6 +198,9 @@ int main(int argc, char** argv) {
 				return 1;
 			}
 		}
+	}
+	if(timeShow) {
+		cout	<< "Done in: " << duration_cast<seconds>(high_resolution_clock::now() - overallTime).count() << "s" << endl;
 	}
 
 	return 0;

@@ -118,6 +118,7 @@ class ParamManager {
 						return false;
 					} else if((*lastParam) == "-s" || (*lastParam) == "-ms"
 						|| (*lastParam) == "-fl" || (*lastParam) == "-mc"
+						 || (*lastParam) == "-t"
 					) {
 						(*lastParam).value	= "1";
 					} else if((*lastParam).value != "") {
