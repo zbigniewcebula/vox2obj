@@ -814,8 +814,19 @@ class Model {
 				*/
 			<< endl;
 
+			float offsetX = -size.x * 0.5f;
+			float offsetY = 0;
+			float offsetZ = -size.z * 0.5f;
+
 			if(marchingCube) {
 				scale *= 0.5;
+
+				offsetX += 1.0f;
+				offsetY += 1.0f;
+				offsetZ += 1.0f;
+				//offsetX += 0.03125f;
+				//offsetY += 0.03125f;
+				//offsetZ += 0.03125f;
 			}
 
 			for(int id : colorList) {
@@ -826,10 +837,6 @@ class Model {
 				<< endl;
 			}
 			hFile << endl;
-
-			float offsetX = -size.x * 0.5f;
-			float offsetY = 0;
-			float offsetZ = -size.z * 0.5f;
 
 			int nIdx = 0;
 			for(size_t i = 0; i < voxel.size(); ++i) {
