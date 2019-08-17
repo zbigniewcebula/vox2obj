@@ -87,9 +87,9 @@ int main(int argc, char** argv) {
 	}
 
 	//Time
-	bool		timeShow	= paramManager.hasValue("-t");
-	time_point	start		= high_resolution_clock::now();
-	time_point	overallTime	= high_resolution_clock::now();
+	bool								timeShow	= paramManager.hasValue("-t");
+	time_point<high_resolution_clock>	start		= high_resolution_clock::now();
+	time_point<high_resolution_clock>	overallTime	= high_resolution_clock::now();
 
 	//Convertion
 	bool multipleFiles = (paramManager.hasValue("-id") and paramManager.hasValue("-od"));

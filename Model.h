@@ -581,6 +581,22 @@ class Model {
 				0b00100010//22
 			};
 
+			//Mirror
+			/*
+			for(int z = 0; z < vox.SizeZ(); ++z) {
+				for(int y = 0; y < vox.SizeY(); ++y) {
+					for(int x = 0, X = vox.SizeX() - 1; x < vox.SizeX() / 2; ++x, --X) {
+						cout	<< "SWAP: " << x << " <> " << X
+								<< " (" << y << ';' << z << ')' << endl;
+						int left = vox.VoxelColorID(x, y, z); 
+						int right = vox.VoxelColorID(X, y, z);
+						if((right = vox.SetVoxel(x, y, z, right)) < 1) cout << right << "\t";
+						if((left = vox.SetVoxel(X, y, z, left)) < 1) cout << left << "\t";
+					}
+				}
+			}
+			*/
+
 			size.Set(vox.SizeX() * 2, vox.SizeY() * 2, vox.SizeZ() * 2, 0);
 
 			colorList.push_back(0);
@@ -775,6 +791,11 @@ class Model {
 									edges[triangulation[bits][(i * 3) + 2]]->y + Y,
 									vID++
 								);
+
+								//Mirror X
+								V->vertex[(i * 3) + 0].x = vox.SizeX() - V->vertex[(i * 3) + 0].x - 1;
+								V->vertex[(i * 3) + 1].x = vox.SizeX() - V->vertex[(i * 3) + 1].x - 1;
+								V->vertex[(i * 3) + 2].x = vox.SizeX() - V->vertex[(i * 3) + 2].x - 1;
 
 								V->triangle[i].Set(vIDX, vIDX + 1, vIDX + 2, tID++);
 							}
